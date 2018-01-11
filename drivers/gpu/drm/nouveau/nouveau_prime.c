@@ -23,69 +23,152 @@
  */
 
 #include <drm/drmP.h>
+#include <drm/drm_legacy.h>
 #include <linux/dma-buf.h>
 
 #include "nouveau_drv.h"
 #include "nouveau_gem.h"
 
-struct sg_table *nouveau_gem_prime_get_sg_table(struct drm_gem_object *obj)
+static void *nouveau_gem_prime_kmap_atomic(struct dma_buf *buf,
+					   unsigned long page)
 {
-	struct nouveau_bo *nvbo = nouveau_gem_object(obj);
-	int npages = nvbo->bo.num_pages;
-
-	return drm_prime_pages_to_sg(nvbo->bo.ttm->pages, npages);
+	return NULL;
 }
 
-void *nouveau_gem_prime_vmap(struct drm_gem_object *obj)
+static void nouveau_gem_prime_kunmap_atomic(struct dma_buf *buf,
+					    unsigned long page, void *addr)
 {
-	struct nouveau_bo *nvbo = nouveau_gem_object(obj);
+}
+
+static void *nouveau_gem_prime_kmap(struct dma_buf *buf, unsigned long page)
+{
+	return NULL;
+}
+
+static void nouveau_gem_prime_kunmap(struct dma_buf *buf, unsigned long page,
+				     void *addr)
+{
+}
+
+static void *nouveau_gem_prime_vmap(struct dma_buf *buf)
+{
+	struct nouveau_bo *bo = nouveau_gem_object(buf->priv);
 	int ret;
 
-	ret = ttm_bo_kmap(&nvbo->bo, 0, nvbo->bo.num_pages,
-			  &nvbo->dma_buf_vmap);
+	ret = ttm_bo_kmap(&bo->bo, 0, bo->bo.num_pages, &bo->dma_buf_vmap);
 	if (ret)
 		return ERR_PTR(ret);
 
-	return nvbo->dma_buf_vmap.virtual;
+	return bo->dma_buf_vmap.virtual;
 }
 
-void nouveau_gem_prime_vunmap(struct drm_gem_object *obj, void *vaddr)
+static void nouveau_gem_prime_vunmap(struct dma_buf *buf, void *vaddr)
 {
-	struct nouveau_bo *nvbo = nouveau_gem_object(obj);
+	struct nouveau_bo *bo = nouveau_gem_object(buf->priv);
 
-	ttm_bo_kunmap(&nvbo->dma_buf_vmap);
+	ttm_bo_kunmap(&bo->dma_buf_vmap);
 }
 
-struct drm_gem_object *nouveau_gem_prime_import_sg_table(struct drm_device *dev,
-							 struct dma_buf_attachment *attach,
-							 struct sg_table *sg)
+static const struct dma_buf_ops nouveau_gem_prime_dmabuf_ops = {
+	.attach = drm_gem_map_attach,
+	.detach = drm_gem_map_detach,
+	.map_dma_buf = drm_gem_map_dma_buf,
+	.unmap_dma_buf = drm_gem_unmap_dma_buf,
+	.release = drm_gem_dmabuf_release,
+	.map_atomic = nouveau_gem_prime_kmap_atomic,
+	.unmap_atomic = nouveau_gem_prime_kunmap_atomic,
+	.map = nouveau_gem_prime_kmap,
+	.unmap = nouveau_gem_prime_kunmap,
+	.vmap = nouveau_gem_prime_vmap,
+	.vunmap = nouveau_gem_prime_vunmap,
+};
+
+struct dma_buf *nouveau_gem_prime_export(struct drm_device *dev,
+					 struct drm_gem_object *obj,
+					 int flags)
+{
+	DEFINE_DMA_BUF_EXPORT_INFO(info);
+
+	info.exp_name = KBUILD_MODNAME;
+	info.owner = dev->driver->fops->owner;
+	info.ops = &nouveau_gem_prime_dmabuf_ops;
+	info.size = obj->size;
+	info.flags = flags;
+	info.priv = obj;
+
+	if (dev->driver->gem_prime_res_obj)
+		info.resv = dev->driver->gem_prime_res_obj(obj);
+
+	return drm_gem_dmabuf_export(dev, &info);
+}
+
+struct drm_gem_object *nouveau_gem_prime_import(struct drm_device *dev,
+						struct dma_buf *buf)
 {
 	struct nouveau_drm *drm = nouveau_drm(dev);
-	struct nouveau_bo *nvbo;
-	struct reservation_object *robj = attach->dmabuf->resv;
-	u32 flags = 0;
+	struct dma_buf_attachment *attach;
+	struct drm_gem_object *obj;
+	u32 flags = TTM_PL_FLAG_TT;
+	struct nouveau_bo *bo;
+	struct sg_table *sgt;
 	int ret;
 
-	flags = TTM_PL_FLAG_TT;
+	if (buf->ops == &nouveau_gem_prime_dmabuf_ops) {
+		obj = buf->priv;
 
-	ww_mutex_lock(&robj->lock, NULL);
-	ret = nouveau_bo_new(&drm->client, attach->dmabuf->size, 0, flags, 0, 0,
-			     sg, robj, &nvbo);
-	ww_mutex_unlock(&robj->lock);
-	if (ret)
-		return ERR_PTR(ret);
-
-	nvbo->valid_domains = NOUVEAU_GEM_DOMAIN_GART;
-
-	/* Initialize the embedded gem-object. We return a single gem-reference
-	 * to the caller, instead of a normal nouveau_bo ttm reference. */
-	ret = drm_gem_object_init(dev, &nvbo->gem, nvbo->bo.mem.size);
-	if (ret) {
-		nouveau_bo_ref(NULL, &nvbo);
-		return ERR_PTR(-ENOMEM);
+		if (obj->dev == dev) {
+			/*
+			 * Importing a DMA-BUF exported from our own GEM
+			 * increases the reference count on the GEM itself
+			 * instead of the f_count of the DMA-BUF.
+			 */
+			drm_gem_object_get(obj);
+			return obj;
+		}
 	}
 
-	return &nvbo->gem;
+	attach = dma_buf_attach(buf, dev->dev);
+	if (IS_ERR(attach))
+		return ERR_CAST(attach);
+
+	get_dma_buf(buf);
+
+	sgt = dma_buf_map_attachment(attach, DMA_BIDIRECTIONAL);
+	if (IS_ERR(sgt)) {
+		ret = PTR_ERR(sgt);
+		goto detach;
+	}
+
+	ww_mutex_lock(&attach->dmabuf->resv->lock, NULL);
+	ret = nouveau_bo_new(&drm->client, attach->dmabuf->size, 0, flags, 0,
+			     0, sgt, attach->dmabuf->resv, &bo);
+	ww_mutex_unlock(&attach->dmabuf->resv->lock);
+	if (ret)
+		goto unmap;
+
+	bo->valid_domains = NOUVEAU_GEM_DOMAIN_GART;
+
+	/*
+	 * Initialize the embedded GEM object. We return a single GEM reference
+	 * to the caller, instead of a normal nouveau_bo TTM reference.
+	 */
+	ret = drm_gem_object_init(dev, &bo->gem, bo->bo.mem.size);
+	if (ret)
+		goto unref;
+
+	bo->gem.import_attach = attach;
+
+	return &bo->gem;
+
+unref:
+	nouveau_bo_ref(NULL, &bo);
+unmap:
+	dma_buf_unmap_attachment(attach, sgt, DMA_BIDIRECTIONAL);
+detach:
+	dma_buf_detach(buf, attach);
+	dma_buf_put(buf);
+
+	return ERR_PTR(ret);
 }
 
 int nouveau_gem_prime_pin(struct drm_gem_object *obj)
@@ -113,4 +196,12 @@ struct reservation_object *nouveau_gem_prime_res_obj(struct drm_gem_object *obj)
 	struct nouveau_bo *nvbo = nouveau_gem_object(obj);
 
 	return nvbo->bo.resv;
+}
+
+struct sg_table *nouveau_gem_prime_get_sg_table(struct drm_gem_object *obj)
+{
+	struct nouveau_bo *nvbo = nouveau_gem_object(obj);
+	int npages = nvbo->bo.num_pages;
+
+	return drm_prime_pages_to_sg(nvbo->bo.ttm->pages, npages);
 }
