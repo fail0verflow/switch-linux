@@ -28,6 +28,7 @@
 
 #include <linux/ktime.h>
 #include <linux/hrtimer.h>
+#include <linux/dma-fence-array.h>
 #include <trace/events/dma_fence.h>
 
 #include <nvif/cl826e.h>
@@ -331,9 +332,9 @@ nouveau_fence_wait(struct nouveau_fence *fence, bool lazy, bool intr)
 		return 0;
 }
 
-int
-nouveau_fence_sync(struct dma_fence *fence, struct nouveau_channel *chan,
-		   bool intr)
+static int
+__nouveau_fence_sync(struct dma_fence *fence, struct nouveau_channel *chan,
+		     bool intr)
 {
 	struct nouveau_fence_chan *fctx = chan->fence;
 	struct nouveau_channel *prev = NULL;
@@ -352,6 +353,30 @@ nouveau_fence_sync(struct dma_fence *fence, struct nouveau_channel *chan,
 
 	if (must_wait)
 		ret = dma_fence_wait(fence, intr);
+
+	return ret;
+}
+
+int
+nouveau_fence_sync(struct dma_fence *fence, struct nouveau_channel *chan,
+		   bool intr)
+{
+	int ret = 0;
+
+	if (dma_fence_is_array(fence)) {
+		struct dma_fence_array *array = to_dma_fence_array(fence);
+		unsigned int i;
+
+		for (i = 0; i < array->num_fences; i++) {
+			struct dma_fence *f = array->fences[i];
+
+			ret = __nouveau_fence_sync(f, chan, intr);
+			if (ret < 0)
+				break;
+		}
+	} else {
+		ret = __nouveau_fence_sync(fence, chan, intr);
+	}
 
 	return ret;
 }
