@@ -114,6 +114,18 @@ struct drm_nouveau_gem_pushbuf {
 	__u64 gart_available;
 };
 
+#define NOUVEAU_GEM_PUSHBUF_FENCE_WAIT (1 << 0)
+#define NOUVEAU_GEM_PUSHBUF_FENCE_EMIT (1 << 1)
+#define NOUVEAU_GEM_PUSHBUF_FLAGS (NOUVEAU_GEM_PUSHBUF_FENCE_WAIT | \
+				   NOUVEAU_GEM_PUSHBUF_FENCE_EMIT)
+
+struct drm_nouveau_gem_pushbuf2 {
+	struct drm_nouveau_gem_pushbuf base;
+	__u32 flags;
+	__s32 fence;
+	__u64 reserved;
+};
+
 #define NOUVEAU_GEM_CPU_PREP_NOWAIT                                  0x00000001
 #define NOUVEAU_GEM_CPU_PREP_WRITE                                   0x00000004
 struct drm_nouveau_gem_cpu_prep {
@@ -138,12 +150,14 @@ struct drm_nouveau_gem_cpu_fini {
 #define DRM_NOUVEAU_GEM_CPU_PREP       0x42
 #define DRM_NOUVEAU_GEM_CPU_FINI       0x43
 #define DRM_NOUVEAU_GEM_INFO           0x44
+#define DRM_NOUVEAU_GEM_PUSHBUF2       0x45
 
 #define DRM_IOCTL_NOUVEAU_GEM_NEW            DRM_IOWR(DRM_COMMAND_BASE + DRM_NOUVEAU_GEM_NEW, struct drm_nouveau_gem_new)
 #define DRM_IOCTL_NOUVEAU_GEM_PUSHBUF        DRM_IOWR(DRM_COMMAND_BASE + DRM_NOUVEAU_GEM_PUSHBUF, struct drm_nouveau_gem_pushbuf)
 #define DRM_IOCTL_NOUVEAU_GEM_CPU_PREP       DRM_IOW (DRM_COMMAND_BASE + DRM_NOUVEAU_GEM_CPU_PREP, struct drm_nouveau_gem_cpu_prep)
 #define DRM_IOCTL_NOUVEAU_GEM_CPU_FINI       DRM_IOW (DRM_COMMAND_BASE + DRM_NOUVEAU_GEM_CPU_FINI, struct drm_nouveau_gem_cpu_fini)
 #define DRM_IOCTL_NOUVEAU_GEM_INFO           DRM_IOWR(DRM_COMMAND_BASE + DRM_NOUVEAU_GEM_INFO, struct drm_nouveau_gem_info)
+#define DRM_IOCTL_NOUVEAU_GEM_PUSHBUF2       DRM_IOWR(DRM_COMMAND_BASE + DRM_NOUVEAU_GEM_PUSHBUF2, struct drm_nouveau_gem_pushbuf2)
 
 #if defined(__cplusplus)
 }

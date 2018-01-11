@@ -31,6 +31,8 @@ extern int nouveau_gem_ioctl_cpu_fini(struct drm_device *, void *,
 				      struct drm_file *);
 extern int nouveau_gem_ioctl_info(struct drm_device *, void *,
 				  struct drm_file *);
+extern int nouveau_gem_ioctl_pushbuf2(struct drm_device *, void *,
+				      struct drm_file *);
 
 struct dma_buf *nouveau_gem_prime_export(struct drm_device *dev,
 					 struct drm_gem_object *obj,
