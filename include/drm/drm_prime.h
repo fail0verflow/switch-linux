@@ -50,14 +50,26 @@ struct drm_prime_file_private {
 	struct rb_root handles;
 };
 
+enum dma_data_direction;
 struct device;
 
+struct dma_buf_attachment;
 struct dma_buf_export_info;
 struct dma_buf;
 
 struct drm_device;
 struct drm_gem_object;
 struct drm_file;
+
+int drm_gem_map_attach(struct dma_buf *dma_buf, struct device *target_dev,
+		       struct dma_buf_attachment *attach);
+void drm_gem_map_detach(struct dma_buf *dma_buf,
+			struct dma_buf_attachment *attach);
+struct sg_table *drm_gem_map_dma_buf(struct dma_buf_attachment *attach,
+				     enum dma_data_direction dir);
+void drm_gem_unmap_dma_buf(struct dma_buf_attachment *attach,
+			   struct sg_table *sgt,
+			   enum dma_data_direction dir);
 
 struct dma_buf *drm_gem_prime_export(struct drm_device *dev,
 				     struct drm_gem_object *obj,
