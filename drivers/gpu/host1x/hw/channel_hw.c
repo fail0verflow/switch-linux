@@ -1,7 +1,7 @@
 /*
  * Tegra host1x Channel
  *
- * Copyright (c) 2010-2013, NVIDIA Corporation.
+ * Copyright (C) 2010-2016 NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <linux/dma-fence.h>
 #include <linux/host1x.h>
 #include <linux/slab.h>
 
@@ -23,6 +24,7 @@
 
 #include "../channel.h"
 #include "../dev.h"
+#include "../fence.h"
 #include "../intr.h"
 #include "../job.h"
 
@@ -68,9 +70,24 @@ static void submit_gathers(struct host1x_job *job)
 		u32 op1 = host1x_opcode_gather(g->words);
 		u32 op2 = g->base + g->offset;
 
+		/* add a setclass for modules that require it */
+		if (job->class)
+			host1x_cdma_push(cdma,
+				 host1x_opcode_setclass(job->class, 0, 0),
+				 HOST1X_OPCODE_NOP);
+
 		trace_write_gather(cdma, g->bo, g->offset, op1 & 0xffff);
 		host1x_cdma_push(cdma, op1, op2);
 	}
+}
+
+static void channel_push_wait(struct host1x_channel *channel,
+			     u32 id, u32 thresh)
+{
+	host1x_cdma_push(&channel->cdma,
+			 host1x_opcode_setclass(HOST1X_CLASS_HOST1X,
+				host1x_uclass_wait_syncpt_r(), 1),
+			 host1x_class_host_wait_syncpt(id, thresh));
 }
 
 static inline void synchronize_syncpt_base(struct host1x_job *job)
@@ -109,6 +126,16 @@ static int channel_submit(struct host1x_job *job)
 
 	/* before error checks, return current max */
 	prev_max = job->syncpt_end = host1x_syncpt_read_max(sp);
+
+	if (job->prefence) {
+		if (host1x_fence_is_waitable(job->prefence)) {
+			host1x_fence_wait(job->prefence, host, job->channel);
+		} else {
+			err = dma_fence_wait(job->prefence, true);
+			if (err)
+				goto error;
+		}
+	}
 
 	/* get submit lock */
 	err = mutex_lock_interruptible(&ch->submitlock);
@@ -150,12 +177,6 @@ static int channel_submit(struct host1x_job *job)
 	host1x_hw_syncpt_assign_to_channel(host, sp, ch);
 
 	job->syncpt_end = syncval;
-
-	/* add a setclass for modules that require it */
-	if (job->class)
-		host1x_cdma_push(&ch->cdma,
-				 host1x_opcode_setclass(job->class, 0, 0),
-				 HOST1X_OPCODE_NOP);
 
 	submit_gathers(job);
 
@@ -212,4 +233,5 @@ static int host1x_channel_init(struct host1x_channel *ch, struct host1x *dev,
 static const struct host1x_channel_ops host1x_channel_ops = {
 	.init = host1x_channel_init,
 	.submit = channel_submit,
+	.push_wait = channel_push_wait
 };

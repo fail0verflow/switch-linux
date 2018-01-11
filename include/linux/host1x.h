@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2013, NVIDIA Corporation. All rights reserved.
+ * Copyright (C) 2009-2016 NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -71,6 +71,7 @@ struct host1x_client {
  * host1x buffer objects
  */
 
+struct dma_fence;
 struct host1x_bo;
 struct sg_table;
 
@@ -258,6 +259,9 @@ struct host1x_job {
 
 	/* Add a channel wait for previous ops to complete */
 	bool serialize;
+
+	/* Wait for prefence to complete before submitting */
+	struct dma_fence *prefence;
 };
 
 struct host1x_job *host1x_job_alloc(struct host1x_channel *ch,
@@ -342,5 +346,11 @@ void tegra_mipi_free(struct tegra_mipi_device *device);
 int tegra_mipi_enable(struct tegra_mipi_device *device);
 int tegra_mipi_disable(struct tegra_mipi_device *device);
 int tegra_mipi_calibrate(struct tegra_mipi_device *device);
+
+struct host1x_fence;
+
+struct dma_fence *host1x_fence_create(struct host1x *host,
+				      struct host1x_syncpt *syncpt,
+				      u32 threshold);
 
 #endif

@@ -1,7 +1,7 @@
 /*
  * Tegra host1x Interrupt Management
  *
- * Copyright (c) 2010-2013, NVIDIA Corporation.
+ * Copyright (C) 2010-2016 NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -42,6 +42,12 @@ enum host1x_intr_action {
 	 * 'data' points to a wait_queue_head_t
 	 */
 	HOST1X_INTR_ACTION_WAKEUP_INTERRUPTIBLE,
+
+	/*
+	 * Signal a dma fence.
+	 * 'data' points to a host1x_fence
+	 */
+	HOST1X_INTR_ACTION_SIGNAL_FENCE,
 
 	HOST1X_INTR_ACTION_COUNT
 };

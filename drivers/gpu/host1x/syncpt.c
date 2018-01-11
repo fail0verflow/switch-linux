@@ -18,6 +18,7 @@
 
 #include <linux/module.h>
 #include <linux/device.h>
+#include <linux/dma-fence.h>
 #include <linux/slab.h>
 
 #include <trace/events/host1x.h>
@@ -413,6 +414,7 @@ int host1x_syncpt_init(struct host1x *host)
 	mutex_init(&host->syncpt_mutex);
 	host->syncpt = syncpt;
 	host->bases = bases;
+	host->fence_ctx_base = dma_fence_context_alloc(host->info->nb_pts);
 
 	host1x_syncpt_restore(host);
 	host1x_hw_syncpt_enable_protection(host);

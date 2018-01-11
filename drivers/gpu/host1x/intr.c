@@ -1,7 +1,7 @@
 /*
  * Tegra host1x Interrupt Management
  *
- * Copyright (c) 2010-2013, NVIDIA Corporation.
+ * Copyright (C) 2010-2016 NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -17,6 +17,7 @@
  */
 
 #include <linux/clk.h>
+#include <linux/dma-fence.h>
 #include <linux/interrupt.h>
 #include <linux/slab.h>
 #include <linux/irq.h>
@@ -133,12 +134,20 @@ static void action_wakeup_interruptible(struct host1x_waitlist *waiter)
 	wake_up_interruptible(wq);
 }
 
+static void action_signal_fence(struct host1x_waitlist *waiter)
+{
+	struct dma_fence *fence = waiter->data;
+
+	dma_fence_signal(fence);
+}
+
 typedef void (*action_handler)(struct host1x_waitlist *waiter);
 
 static const action_handler action_handlers[HOST1X_INTR_ACTION_COUNT] = {
 	action_submit_complete,
 	action_wakeup,
 	action_wakeup_interruptible,
+	action_signal_fence
 };
 
 static void run_handlers(struct list_head completed[HOST1X_INTR_ACTION_COUNT])
