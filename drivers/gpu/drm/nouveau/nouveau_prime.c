@@ -29,6 +29,26 @@
 #include "nouveau_drv.h"
 #include "nouveau_gem.h"
 
+static int nouveau_gem_prime_begin_cpu_access(struct dma_buf *buf,
+					      enum dma_data_direction direction)
+{
+	struct nouveau_bo *bo = nouveau_gem_object(buf->priv);
+
+	nouveau_bo_sync_for_cpu(bo);
+
+	return 0;
+}
+
+static int nouveau_gem_prime_end_cpu_access(struct dma_buf *buf,
+					    enum dma_data_direction direction)
+{
+	struct nouveau_bo *bo = nouveau_gem_object(buf->priv);
+
+	nouveau_bo_sync_for_device(bo);
+
+	return 0;
+}
+
 static void *nouveau_gem_prime_kmap_atomic(struct dma_buf *buf,
 					   unsigned long page)
 {
@@ -106,6 +126,8 @@ static const struct dma_buf_ops nouveau_gem_prime_dmabuf_ops = {
 	.map_dma_buf = drm_gem_map_dma_buf,
 	.unmap_dma_buf = drm_gem_unmap_dma_buf,
 	.release = drm_gem_dmabuf_release,
+	.begin_cpu_access = nouveau_gem_prime_begin_cpu_access,
+	.end_cpu_access = nouveau_gem_prime_end_cpu_access,
 	.map_atomic = nouveau_gem_prime_kmap_atomic,
 	.unmap_atomic = nouveau_gem_prime_kunmap_atomic,
 	.map = nouveau_gem_prime_kmap,
