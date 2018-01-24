@@ -94,4 +94,9 @@
 			};
 		};
 	};
+
+	/* SD */
+	sdhci@700b0000 {
+		power-gpios = <&gpio TEGRA_GPIO(E, 4) GPIO_ACTIVE_HIGH>;
+	};
 };
