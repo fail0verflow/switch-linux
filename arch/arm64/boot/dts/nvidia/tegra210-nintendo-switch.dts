@@ -1965,7 +1965,7 @@
 			regulator-name = "RTL_5V";
 			regulator-min-microvolt = <5000000>;
 			regulator-max-microvolt = <5000000>;
-			gpio = <&gpio TEGRA_GPIO(H, 1) GPIO_ACTIVE_HIGH>;
+			gpio = <&gpio TEGRA_GPIO(C, 1) GPIO_ACTIVE_HIGH>;
 			enable-active-high;
 			vin-supply = <&vdd_5v0_sys>;
 		};
@@ -1976,7 +1976,7 @@
 			regulator-name = "USB_VBUS_EN1";
 			regulator-min-microvolt = <5000000>;
 			regulator-max-microvolt = <5000000>;
-			gpio = <&gpio TEGRA_GPIO(CC, 5) GPIO_ACTIVE_HIGH>;
+			gpio = <&gpio TEGRA_GPIO(S, 5) GPIO_ACTIVE_HIGH>;
 			enable-active-high;
 			vin-supply = <&vdd_5v0_sys>;
 		};
