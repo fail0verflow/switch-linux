@@ -57,7 +57,7 @@
 
 	host1x@50000000 {
 		dsi@54300000 {
-			status = "okay";
+			//status = "okay";
 
 			avdd-dsi-csi-supply = <&vdd_dsi_csi>;
 
@@ -72,11 +72,11 @@
 		};
 
 		dpaux@54040000 {
-			status = "okay";
+			//status = "okay";
 		};
 
 		sor@54580000 {
-			status = "okay";
+			//status = "okay";
 
 			avdd-io-supply = <&avdd_1v05>;
 			vdd-pll-supply = <&vdd_1v8>;
@@ -1387,7 +1387,7 @@
 	};
 
 	i2c@7000c400 {
-		status = "okay";
+		//status = "okay";
 		clock-frequency = <100000>;
 
 		backlight: backlight@2c {
@@ -1426,7 +1426,7 @@
 
 	/* HDMI DDC */
 	hdmi_ddc: i2c@7000c700 {
-		status = "okay";
+		//status = "okay";
 		clock-frequency = <100000>;
 	};
 
