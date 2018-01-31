@@ -54,11 +54,12 @@
 			avdd-dsi-csi-supply = <&vdd_dsi_csi>;
 
 			panel@0 {
-				compatible = "lg,lh500wx1-sd03";
+				compatible = "nintendo,lpm062m326a";
 				reg = <0>;
 
-				enable-gpios = <&gpio TEGRA_GPIO(V, 2) GPIO_ACTIVE_HIGH>;
-				power-supply = <&vdd_lcd_1>;
+				reset-gpios = <&gpio TEGRA_GPIO(V, 2) GPIO_ACTIVE_HIGH>;
+				vdd1-supply = <&vdd_lcd_1>;
+				vdd2-supply = <&vdd_lcd_2>;
 				backlight = <&backlight>;
 			};
 		};
@@ -767,29 +768,26 @@
 			regulator-always-on;
 		};
 
-		vdd_lcd_0: regulator@1 {
+		vdd_lcd_1: regulator@1 {
 			compatible = "regulator-fixed";
 			reg = <1>;
-			regulator-name = "vcc_lcd_0";
+			regulator-name = "vcc_lcd_1";
 			regulator-min-microvolt = <1800000>;
 			regulator-max-microvolt = <1800000>;
 			gpio = <&gpio TEGRA_GPIO(I, 0) GPIO_ACTIVE_HIGH>;
-			startup-delay-us = <10000>;
 			enable-active-high;
 			regulator-always-on;
 			regulator-boot-on;
 		};
 
-		vdd_lcd_1: regulator@2 {
+		vdd_lcd_2: regulator@2 {
 			compatible = "regulator-fixed";
 			reg = <2>;
-			regulator-name = "vcc_lcd_1";
+			regulator-name = "vcc_lcd_2";
 			regulator-min-microvolt = <1800000>;
 			regulator-max-microvolt = <1800000>;
 			gpio = <&gpio TEGRA_GPIO(I, 1) GPIO_ACTIVE_HIGH>;
-			startup-delay-us = <10000>;
 			enable-active-high;
-			vin-supply = <&vdd_lcd_0>;
 			regulator-always-on;
 			regulator-boot-on;
 		};
