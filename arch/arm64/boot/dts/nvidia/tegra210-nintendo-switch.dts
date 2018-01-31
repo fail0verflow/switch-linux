@@ -20,7 +20,7 @@
 	};
 
 	chosen {
-		bootargs = "earlycon";
+		bootargs = "earlycon drm.debug=0x3f";
 		stdout-path = "serial1:115200n8";
 	};
 
@@ -49,7 +49,7 @@
 
 	host1x@50000000 {
 		dsi@54300000 {
-// 			status = "okay";
+			status = "okay";
 
 			avdd-dsi-csi-supply = <&vdd_dsi_csi>;
 
@@ -58,7 +58,7 @@
 				reg = <0>;
 
 				enable-gpios = <&gpio TEGRA_GPIO(V, 2) GPIO_ACTIVE_HIGH>;
-// 				power-supply = <&vdd_lcd_1>;
+				power-supply = <&vdd_lcd_1>;
 				backlight = <&backlight>;
 			};
 		};
@@ -333,8 +333,8 @@
 					function = "32k-out1";
 				};
 
-				gpio5_6 {
-					pins = "gpio5", "gpio6";
+				gpio5_6_7 {
+					pins = "gpio5", "gpio6", "gpio7";
 					function = "gpio";
 					drive-push-pull = <1>;
 				};
@@ -445,6 +445,8 @@
 					regulator-name = "VDD_PEX_1V05";
 					regulator-min-microvolt = <1050000>;
 					regulator-max-microvolt = <1050000>;
+					regulator-always-on;
+					regulator-boot-on;
 
 					regulator-enable-ramp-delay = <22>;
 					regulator-disable-ramp-delay = <630>;
@@ -484,6 +486,8 @@
 					regulator-name = "VDD_UNK_LDO3";
 					regulator-min-microvolt = <3100000>;
 					regulator-max-microvolt = <3100000>;
+					regulator-always-on;
+					regulator-boot-on;
 
 					regulator-enable-ramp-delay = <50>;
 					regulator-disable-ramp-delay = <1110>;
@@ -514,6 +518,8 @@
 					regulator-name = "VDD_UNK_LDO5";
 					regulator-min-microvolt = <1800000>;
 					regulator-max-microvolt = <1800000>;
+					regulator-always-on;
+					regulator-boot-on;
 
 					regulator-enable-ramp-delay = <62>;
 					regulator-disable-ramp-delay = <640>;
@@ -528,6 +534,8 @@
 					regulator-name = "UNK_LDO6";
 					regulator-min-microvolt = <2900000>;
 					regulator-max-microvolt = <2900000>;
+					regulator-always-on;
+					regulator-boot-on;
 
 					regulator-enable-ramp-delay = <36>;
 					regulator-disable-ramp-delay = <674>;
@@ -558,6 +566,8 @@
 					regulator-name = "AVDD_SATA_HDMI_DP_1V05";
 					regulator-min-microvolt = <1050000>;
 					regulator-max-microvolt = <1050000>;
+					regulator-always-on;
+					regulator-boot-on;
 
 					regulator-enable-ramp-delay = <22>;
 					regulator-disable-ramp-delay = <1160>;
@@ -760,7 +770,7 @@
 		vdd_lcd_0: regulator@1 {
 			compatible = "regulator-fixed";
 			reg = <1>;
-			regulator-name = "fixed-supply";
+			regulator-name = "vcc_lcd_0";
 			regulator-min-microvolt = <1800000>;
 			regulator-max-microvolt = <1800000>;
 			gpio = <&gpio TEGRA_GPIO(I, 0) GPIO_ACTIVE_HIGH>;
@@ -773,24 +783,28 @@
 		vdd_lcd_1: regulator@2 {
 			compatible = "regulator-fixed";
 			reg = <2>;
-			regulator-name = "fixed-supply";
+			regulator-name = "vcc_lcd_1";
 			regulator-min-microvolt = <1800000>;
 			regulator-max-microvolt = <1800000>;
 			gpio = <&gpio TEGRA_GPIO(I, 1) GPIO_ACTIVE_HIGH>;
 			startup-delay-us = <10000>;
 			enable-active-high;
+			vin-supply = <&vdd_lcd_0>;
 			regulator-always-on;
 			regulator-boot-on;
-// 			vin-supply = <&vdd_lcd_0>;
 		};
 
 		vdd_dsi_csi: regulator@3 {
 			compatible = "regulator-fixed";
 			reg = <3>;
 			regulator-name = "AVDD_DSI_CSI_1V2";
+			gpio = <&max77620 7 0>;
+			enable-active-high;
 			regulator-min-microvolt = <1200000>;
 			regulator-max-microvolt = <1200000>;
 			vin-supply = <&vdd_sys_1v2>;
+			regulator-always-on;
+			regulator-boot-on;
 		};
 
 		usbc_vbus: regulator@4 {
