@@ -40,11 +40,19 @@
 		vddio-pex-ctl-supply = <&vdd_1v8>;
 
 		pci@1,0 {
-			phys = <&{/padctl@7009f000/pads/pcie/lanes/pcie-0}>;
-			phy-names = "pcie-0";
+			phys = <&{/padctl@7009f000/pads/pcie/lanes/pcie-0}>,
+			       <&{/padctl@7009f000/pads/pcie/lanes/pcie-1}>,
+			       <&{/padctl@7009f000/pads/pcie/lanes/pcie-2}>,
+			       <&{/padctl@7009f000/pads/pcie/lanes/pcie-3}>;
+			phy-names = "pcie-0", "pcie-1", "pcie-2", "pcie-3";
 			status = "okay";
 		};
 
+		pci@2,0 {
+			phys = <&{/padctl@7009f000/pads/pcie/lanes/pcie-4}>;
+			phy-names = "pcie-4";
+			status = "okay";
+		};
 	};
 
 	host1x@50000000 {
@@ -641,7 +649,7 @@
 		hvddio-pex-supply = <&vdd_1v8>;
 		avdd-usb-supply = <&vdd_3v3_sys>;
 		avdd-pll-utmip-supply = <&vdd_1v8>;
-		avdd-pll-uerefe-supply = <&vdd_pex_1v05>;
+		avdd-pll-uerefe-supply = <&avdd_1v05_pll>;
 		dvdd-usb-ss-pll-supply = <&vdd_pex_1v05>;
 		hvdd-usb-ss-pll-e-supply = <&vdd_1v8>;
 
@@ -671,7 +679,26 @@
 						nvidia,function = "pcie-x1";
 						status = "okay";
 					};
-
+					pcie-1 {
+						nvidia,function = "pcie-x4";
+						status = "okay";
+					};
+					pcie-2 {
+						nvidia,function = "pcie-x4";
+						status = "okay";
+					};
+					pcie-3 {
+						nvidia,function = "pcie-x4";
+						status = "okay";
+					};
+					pcie-4 {
+						nvidia,function = "pcie-x4";
+						status = "okay";
+					};
+					pcie-5 {
+						nvidia,function = "usb3-ss";
+						status = "okay";
+					};
 					pcie-6 {
 						nvidia,function = "usb3-ss";
 						status = "okay";
@@ -689,6 +716,7 @@
 
 			usb3-0 {
 				nvidia,usb2-companion = <0>;
+				vbus-supply = <&usbc_vbus>;
 				status = "okay";
 			};
 		};
