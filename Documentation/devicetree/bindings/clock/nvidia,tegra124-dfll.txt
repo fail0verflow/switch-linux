@@ -23,7 +23,8 @@ Required properties:
 - clock-names: Must include the following entries:
   - soc: Clock source for the DFLL control logic.
   - ref: The closed loop reference clock
-  - i2c: Clock source for the integrated I2C master.
+  - i2c: Clock source for the integrated I2C master (only required when
+	 using I2C mode).
 - resets: Must contain an entry for each entry in reset-names.
   See ../reset/reset.txt for details.
 - reset-names: Must include the following entries:
@@ -45,10 +46,28 @@ Required properties for the control loop parameters:
 Optional properties for the control loop parameters:
 - nvidia,cg-scale: Boolean value, see the field DFLL_PARAMS_CG_SCALE in the TRM.
 
+Optional properties for mode selection:
+- nvidia,pwm-to-pmic: Use PWM to control regulator rather then I2C.
+
 Required properties for I2C mode:
 - nvidia,i2c-fs-rate: I2C transfer rate, if using full speed mode.
 
-Example:
+Required properties for PWM mode:
+- nvidia,pwm-period: period of PWM square wave in us.
+- nvidia,init-uv: Regulator voltage in uV when PWM control is disabled.
+- nvidia,align-offset-uv: Regulator voltage in uV when PWM control is enabled
+			  and PWM output is low.
+- nvidia,align-step-uv: Voltage increase in uV corresponding to a 1/33th
+			increase in duty cycle. Eg the voltage for 2/33th duty
+			cycle would be:
+			nvidia,align-offset-uv + nvidia,align-step-uv * 2.
+- pinctrl-0: I/O pad configuration when PWM control is enabled.
+- pinctrl-1: I/O pad configuration when PWM control is disabled.
+- pinctrl-names: must include the following entries:
+  - dvfs_pwm_enable: I/O pad configuration when PWM control is enabled.
+  - dvfs_pwm_disable: I/O pad configuration when PWM control is disabled.
+
+Example for I2C:
 
 clock@70110000 {
         compatible = "nvidia,tegra124-dfll";
@@ -75,4 +94,57 @@ clock@70110000 {
         nvidia,cg = <2>;
 
         nvidia,i2c-fs-rate = <400000>;
+};
+
+Example for PWM:
+
+clock@70110000 {
+        compatible = "nvidia,tegra124-dfll";
+        reg = <0 0x70110000 0 0x100>, /* DFLL control */
+              <0 0x70110000 0 0x100>, /* I2C output control */
+              <0 0x70110100 0 0x100>, /* Integrated I2C controller */
+              <0 0x70110200 0 0x100>; /* Look-up table RAM */
+        interrupts = <GIC_SPI 62 IRQ_TYPE_LEVEL_HIGH>;
+        clocks = <&tegra_car TEGRA210_CLK_DFLL_SOC>,
+                 <&tegra_car TEGRA210_CLK_DFLL_REF>;
+        clock-names = "soc", "ref";
+        resets = <&tegra_car TEGRA124_RST_DFLL_DVCO>;
+        reset-names = "dvco";
+        #clock-cells = <0>;
+        clock-output-names = "dfllCPU_out";
+	nvidia,pwm-to-pmic;
+	nvidia,init-uv = <1000000>;
+	nvidia,align-step-uv = <19200>; /* 19.2mV */
+	nvidia,align-offset-uv = <708000>; /* 708mV */
+	nvidia,sample-rate = <25000>;
+	nvidia,droop-ctrl = <0x00000f00>;
+	nvidia,force-mode = <1>;
+	nvidia,cf = <6>;
+	nvidia,ci = <0>;
+	nvidia,cg = <2>;
+	nvidia,idle-override;
+	nvidia,one-shot-calibrate;
+	nvidia,pwm-period = <2500>; /* 2.5us */
+	pinctrl-names = "dvfs_pwm_enable", "dvfs_pwm_disable";
+	pinctrl-0 = <&dvfs_pwm_active_state>;
+	pinctrl-1 = <&dvfs_pwm_inactive_state>;
+};
+
+/* pinmux nodes added for completeness. Binding doc can be found in:
+ * Documentation/devicetree/bindings/pinctrl/nvidia,tegra210-pinmux.txt
+ */
+
+pinmux: pinmux@700008d4 {
+	dvfs_pwm_active_state: dvfs_pwm_active {
+		dvfs_pwm_pbb1 {
+			nvidia,pins = "dvfs_pwm_pbb1";
+			nvidia,tristate = <TEGRA_PIN_DISABLE>;
+		};
+	};
+	dvfs_pwm_inactive_state: dvfs_pwm_inactive {
+		dvfs_pwm_pbb1 {
+			nvidia,pins = "dvfs_pwm_pbb1";
+			nvidia,tristate = <TEGRA_PIN_ENABLE>;
+		};
+	};
 };
