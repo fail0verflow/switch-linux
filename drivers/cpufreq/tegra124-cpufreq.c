@@ -64,7 +64,8 @@ static void tegra124_cpu_switch_to_pllx(struct tegra124_cpufreq_priv *priv)
 {
 	clk_set_parent(priv->cpu_clk, priv->pllp_clk);
 	clk_disable_unprepare(priv->dfll_clk);
-	regulator_sync_voltage(priv->vdd_cpu_reg);
+	if (priv->vdd_cpu_reg)
+		regulator_sync_voltage(priv->vdd_cpu_reg);
 	clk_set_parent(priv->cpu_clk, priv->pllx_clk);
 }
 
@@ -89,10 +90,10 @@ static int tegra124_cpufreq_probe(struct platform_device *pdev)
 		return -ENODEV;
 
 	priv->vdd_cpu_reg = regulator_get(cpu_dev, "vdd-cpu");
-	if (IS_ERR(priv->vdd_cpu_reg)) {
-		ret = PTR_ERR(priv->vdd_cpu_reg);
-		goto out_put_np;
-	}
+	if (IS_ERR(priv->vdd_cpu_reg) != -EPROBE_DEFER)
+		priv->vdd_cpu_reg = NULL;
+	else
+		return -EPROBE_DEFER;
 
 	priv->cpu_clk = of_clk_get_by_name(np, "cpu_g");
 	if (IS_ERR(priv->cpu_clk)) {
@@ -148,7 +149,6 @@ out_put_cpu_clk:
 	clk_put(priv->cpu_clk);
 out_put_vdd_cpu_reg:
 	regulator_put(priv->vdd_cpu_reg);
-out_put_np:
 	of_node_put(np);
 
 	return ret;
@@ -181,7 +181,8 @@ static int __init tegra_cpufreq_init(void)
 	int ret;
 	struct platform_device *pdev;
 
-	if (!of_machine_is_compatible("nvidia,tegra124"))
+	if (!(of_machine_is_compatible("nvidia,tegra124")
+		|| of_machine_is_compatible("nvidia,tegra210")))
 		return -ENODEV;
 
 	/*
