@@ -22,6 +22,7 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/platform_device.h>
+#include <linux/regulator/consumer.h>
 #include <soc/tegra/fuse.h>
 
 #include "clk.h"
@@ -42,9 +43,6 @@ static const struct cvb_table tegra124_cpu_cvb_tables[] = {
 		.process_id = -1,
 		.min_millivolts = 900,
 		.max_millivolts = 1260,
-		.alignment = {
-			.step_uv = 10000, /* 10mV */
-		},
 		.speedo_scale = 100,
 		.voltage_scale = 1000,
 		.entries = {
@@ -82,6 +80,34 @@ static const struct cvb_table tegra124_cpu_cvb_tables[] = {
 	},
 };
 
+static int get_alignment_from_regulator(struct device *dev,
+					struct rail_alignment *align)
+{
+	int min_uV, max_uV, n_voltages, ret;
+	struct regulator *reg;
+
+	reg = devm_regulator_get(dev, "vdd-cpu");
+	if (IS_ERR(reg))
+		return PTR_ERR(reg);
+
+	ret = regulator_get_constraint_voltages(reg, &min_uV, &max_uV);
+	if (!ret)
+		align->offset_uv = min_uV;
+	else
+		return ret;
+
+	align->step_uv = regulator_get_linear_step(reg);
+	if (!align->step_uv && !ret) {
+		n_voltages = regulator_count_voltages(reg);
+		if (n_voltages > 1)
+			align->step_uv = (max_uV - min_uV) / (n_voltages - 1);
+	}
+
+	devm_regulator_put(reg);
+
+	return 0;
+}
+
 static int tegra124_dfll_fcpu_probe(struct platform_device *pdev)
 {
 	int process_id, speedo_id, speedo_value, err;
@@ -108,10 +134,14 @@ static int tegra124_dfll_fcpu_probe(struct platform_device *pdev)
 	}
 
 	soc->max_freq = cpu_max_freq_table[speedo_id];
+	err = get_alignment_from_regulator(&pdev->dev, &soc->alignment);
+	if (err < 0)
+		return err;
 
-	soc->cvb = tegra_cvb_add_opp_table(soc->dev, tegra124_cpu_cvb_tables,
-					   ARRAY_SIZE(tegra124_cpu_cvb_tables),
-					   process_id, speedo_id, speedo_value,
+	soc->cvb = tegra_cvb_add_opp_table(soc->dev, fcpu_data->cpu_cvb_tables,
+					   fcpu_data->cpu_cvb_tables_size,
+					   &soc->alignment, process_id,
+					   speedo_id, speedo_value,
 					   soc->max_freq);
 	if (IS_ERR(soc->cvb)) {
 		dev_err(&pdev->dev, "couldn't add OPP table: %ld\n",
