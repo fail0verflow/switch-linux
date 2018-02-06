@@ -301,9 +301,10 @@ struct tegra_dfll {
 	u32				i2c_slave_addr;
 
 	/* i2c_lut array entries are regulator framework selectors */
-	unsigned			i2c_lut[MAX_DFLL_VOLTAGES];
-	int				i2c_lut_size;
-	u8				lut_min, lut_max, lut_safe;
+	unsigned int			i2c_lut[MAX_DFLL_VOLTAGES];
+	unsigned int			lut_uv[MAX_DFLL_VOLTAGES];
+	int				lut_size;
+	u8				lut_bottom, lut_min, lut_max, lut_safe;
 };
 
 #define clk_hw_to_dfll(_hw) container_of(_hw, struct tegra_dfll, dfll_clk_hw)
@@ -531,10 +532,10 @@ static void dfll_load_i2c_lut(struct tegra_dfll *td)
 	u32 val;
 
 	for (i = 0; i < MAX_DFLL_VOLTAGES; i++) {
-		if (i < td->lut_min)
-			lut_index = td->lut_min;
-		else if (i > td->lut_max)
-			lut_index = td->lut_max;
+		if (i < td->lut_bottom)
+			lut_index = td->lut_bottom;
+		else if (i > td->lut_size - 1)
+			lut_index = td->lut_size - 1;
 		else
 			lut_index = i;
 
@@ -594,9 +595,9 @@ static void dfll_init_out_if(struct tegra_dfll *td)
 {
 	u32 val;
 
-	td->lut_min = 0;
-	td->lut_max = td->i2c_lut_size - 1;
-	td->lut_safe = td->lut_min + 1;
+	td->lut_min = td->lut_bottom;
+	td->lut_max = td->lut_size - 1;
+	td->lut_safe = td->lut_min + (td->lut_min < td->lut_max ? 1 : 0);
 
 	dfll_i2c_writel(td, 0, DFLL_OUTPUT_CFG);
 	val = (td->lut_safe << DFLL_OUTPUT_CFG_SAFE_SHIFT) |
@@ -619,11 +620,11 @@ static void dfll_init_out_if(struct tegra_dfll *td)
  */
 
 /**
- * find_lut_index_for_rate - determine I2C LUT index for given DFLL rate
+ * find_lut_index_for_rate - determine LUT index for given DFLL rate
  * @td: DFLL instance
  * @rate: clock rate
  *
- * Determines the index of a I2C LUT entry for a voltage that approximately
+ * Determines the index of a LUT entry for a voltage that approximately
  * produces the given DFLL clock rate. This is used when forcing a value
  * to the integrator during rate changes. Returns -ENOENT if a suitable
  * LUT index is not found.
@@ -637,11 +638,11 @@ static int find_lut_index_for_rate(struct tegra_dfll *td, unsigned long rate)
 	if (IS_ERR(opp))
 		return PTR_ERR(opp);
 
-	uv = dev_pm_opp_get_voltage(opp);
+	uv = dev_pm_opp_get_voltage(opp) / td->soc->alignment.step_uv;
 	dev_pm_opp_put(opp);
 
-	for (i = 0; i < td->i2c_lut_size; i++) {
-		if (regulator_list_voltage(td->vdd_reg, td->i2c_lut[i]) == uv)
+	for (i = td->lut_bottom; i < td->lut_size; i++) {
+		if ((td->lut_uv[i] / td->soc->alignment.step_uv) >= uv)
 			return i;
 	}
 
@@ -1377,15 +1378,17 @@ di_err1:
  */
 static int find_vdd_map_entry_exact(struct tegra_dfll *td, int uV)
 {
-	int i, n_voltages, reg_uV;
+	int i, n_voltages, reg_mult, align_mult;
 
+	align_mult = uV / td->soc->alignment.step_uv;
 	n_voltages = regulator_count_voltages(td->vdd_reg);
 	for (i = 0; i < n_voltages; i++) {
-		reg_uV = regulator_list_voltage(td->vdd_reg, i);
-		if (reg_uV < 0)
+		reg_mult = regulator_list_voltage(td->vdd_reg, i) /
+				td->soc->alignment.step_uv;
+		if (reg_mult < 0)
 			break;
 
-		if (uV == reg_uV)
+		if (align_mult == reg_mult)
 			return i;
 	}
 
@@ -1399,15 +1402,17 @@ static int find_vdd_map_entry_exact(struct tegra_dfll *td, int uV)
  * */
 static int find_vdd_map_entry_min(struct tegra_dfll *td, int uV)
 {
-	int i, n_voltages, reg_uV;
+	int i, n_voltages, reg_mult, align_mult;
 
+	align_mult = uV / td->soc->alignment.step_uv;
 	n_voltages = regulator_count_voltages(td->vdd_reg);
 	for (i = 0; i < n_voltages; i++) {
-		reg_uV = regulator_list_voltage(td->vdd_reg, i);
-		if (reg_uV < 0)
+		reg_mult = regulator_list_voltage(td->vdd_reg, i) /
+				td->soc->alignment.step_uv;
+		if (reg_mult < 0)
 			break;
 
-		if (uV <= reg_uV)
+		if (align_mult <= reg_mult)
 			return i;
 	}
 
@@ -1450,8 +1455,10 @@ static int dfll_build_i2c_lut(struct tegra_dfll *td)
 	if (lut < 0)
 		goto out;
 	td->i2c_lut[0] = lut;
+	td->lut_bottom = 0;
 
 	for (j = 1, rate = 0; ; rate++) {
+
 		opp = dev_pm_opp_find_freq_ceil(td->soc->dev, &rate);
 		if (IS_ERR(opp))
 			break;
@@ -1484,13 +1491,18 @@ static int dfll_build_i2c_lut(struct tegra_dfll *td)
 		if (v >= v_max)
 			break;
 	}
-	td->i2c_lut_size = j;
+	td->lut_size = j;
 
 	if (!td->dvco_rate_min)
 		dev_err(td->dev, "no opp above DFLL minimum voltage %d mV\n",
 			td->soc->cvb->min_millivolts);
-	else
+	else {
 		ret = 0;
+		for (j = 0; j < td->lut_size; j++)
+			td->lut_uv[j] =
+				regulator_list_voltage(td->vdd_reg,
+						       td->i2c_lut[j]);
+	}
 
 out:
 	return ret;
