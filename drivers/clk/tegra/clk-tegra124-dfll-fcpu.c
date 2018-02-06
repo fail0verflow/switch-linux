@@ -557,6 +557,21 @@ static int get_alignment_from_regulator(struct device *dev,
 	return 0;
 }
 
+static int get_alignment_from_dt(struct device *dev,
+				 struct rail_alignment *align)
+{
+	int err;
+
+	err = of_property_read_u32(dev->of_node, "nvidia,align-step-uv",
+				   &align->step_uv);
+	if (err < 0)
+		return err;
+
+	err = of_property_read_u32(dev->of_node,
+				   "nvidia,align-offset-uv", &align->offset_uv);
+	return err;
+}
+
 static int tegra124_dfll_fcpu_probe(struct platform_device *pdev)
 {
 	int process_id, speedo_id, speedo_value, err;
@@ -587,8 +602,12 @@ static int tegra124_dfll_fcpu_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
-	soc->max_freq = cpu_max_freq_table[speedo_id];
-	err = get_alignment_from_regulator(&pdev->dev, &soc->alignment);
+	soc->max_freq = fcpu_data->cpu_max_freq_table[speedo_id];
+	if (of_property_read_bool(pdev->dev.of_node, "nvidia,pwm-to-pmic"))
+		err = get_alignment_from_dt(&pdev->dev, &soc->alignment);
+	else
+		err = get_alignment_from_regulator(&pdev->dev,
+						   &soc->alignment);
 	if (err < 0)
 		return err;
 
