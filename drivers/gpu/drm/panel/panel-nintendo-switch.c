@@ -103,6 +103,7 @@ static int nintendo_switch_panel_init(struct nintendo_switch_panel *nintendo_swi
 	switch (display_id[0]) {
 		case 0x10:
 			dev_info(&dsi->dev, "using init sequence for ID 0x10\n");
+			init_cmds = init_cmds_0x10;
 			break;
 		default:
 			dev_info(&dsi->dev, "unknown display, no extra init\n");
