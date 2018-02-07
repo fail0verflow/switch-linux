@@ -322,7 +322,7 @@
 				};
 
 				gpio3 {
-					pins = "gpio2";
+					pins = "gpio3";
 					function = "fps-out";
 					maxim,active-fps-source = <MAX77620_FPS_SRC_0>;
 					maxim,active-fps-power-up-slot = <4>;
