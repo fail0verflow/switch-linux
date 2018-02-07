@@ -46,11 +46,11 @@ struct nintendo_switch_panel {
 
 struct init_cmd {
 	u8 cmd;
-	u8 length;
+	int length;
 	u8 data[0x40];
 };
 
-struct init_cmd init_cmds[] = {
+struct init_cmd init_cmds_0x10[] = {
 	{ 0xb9, 3,    { 0xff, 0x83, 0x94 }},
 	{ 0xbd, 1,    { 0x00 }},
 	{ 0xd8, 0x18, { 0xaa, 0xaa, 0xaa, 0xeb, 0xaa, 0xaa,
@@ -69,6 +69,7 @@ struct init_cmd init_cmds[] = {
 	{ 0xbd, 1,    { 0x00 }},
 	{ 0xd9, 1,    { 0x06 }},
 	{ 0xb9, 3,    { 0x00, 0x00, 0x00 }},
+	{ 0x00, -1,   { 0x00, }},
 };
 
 static inline struct nintendo_switch_panel *to_nintendo_switch_panel(struct drm_panel *panel)
@@ -79,7 +80,6 @@ static inline struct nintendo_switch_panel *to_nintendo_switch_panel(struct drm_
 static int nintendo_switch_panel_init(struct nintendo_switch_panel *nintendo_switch)
 {
 	struct mipi_dsi_device *dsi = nintendo_switch->dsi;
-	int i;
 	int ret;
 	u8 display_id[3] = {0};
 
@@ -98,11 +98,23 @@ static int nintendo_switch_panel_init(struct nintendo_switch_panel *nintendo_swi
 			ret, display_id[0], display_id[1], display_id[2]);
 	}
 
-	for (i = 0; i < ARRAY_SIZE(init_cmds); i++) {
-		ret = mipi_dsi_dcs_write(dsi, init_cmds[i].cmd,
-			init_cmds[i].data, init_cmds[i].length);
+	struct init_cmd *init_cmds = NULL;
+
+	switch (display_id[0]) {
+		case 0x10:
+			dev_info(&dsi->dev, "using init sequence for ID 0x10\n");
+			break;
+		default:
+			dev_info(&dsi->dev, "unknown display, no extra init\n");
+			break;
+	}
+
+	while (init_cmds && init_cmds->length != -1) {
+		ret = mipi_dsi_dcs_write(dsi, init_cmds->cmd, init_cmds->data,
+					 init_cmds->length);
 		if (ret < 0)
 			return ret;
+		init_cmds++;
 	}
 
 	ret = mipi_dsi_dcs_exit_sleep_mode(dsi);
