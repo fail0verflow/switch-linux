@@ -382,7 +382,8 @@ static int nintendo_switch_panel_probe(struct mipi_dsi_device *dsi)
 	dsi->lanes = 4;
 	dsi->format = MIPI_DSI_FMT_RGB888;
 	dsi->mode_flags = MIPI_DSI_MODE_VIDEO |
-			MIPI_DSI_CLOCK_NON_CONTINUOUS;
+			MIPI_DSI_CLOCK_NON_CONTINUOUS |
+			MIPI_DSI_MODE_EOT_PACKET;
 
 	nintendo_switch = devm_kzalloc(&dsi->dev, sizeof(*nintendo_switch), GFP_KERNEL);
 	if (!nintendo_switch)
