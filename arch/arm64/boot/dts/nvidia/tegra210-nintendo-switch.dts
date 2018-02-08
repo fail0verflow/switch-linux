@@ -283,25 +283,70 @@
 		status = "okay";
 	};
 
-	i2c@7000c000 {
-		status = "okay";
-		clock-frequency = <400000>;
+	/* i2c1 @ 100000hz
+        18: usb power delivery
+        1c: realtek 5639
+        36: some maxim fuel gauge
+        4c:
+        52:
+        6b:
+        */
+        i2c@7000c000 {
+                status = "okay";
+                clock-frequency = <100000>;
+/*
+                audio-codec@1c {
+                        compatible = "realtek,rt5639";
+                        reg = <0x1c>;
+                        interrupt-parent = <&gpio>;
+                        interrupts = <TEGRA_GPIO(V, 6) IRQ_TYPE_LEVEL_HIGH>;
+                        realtek,ldo1-en-gpios = <&gpio TEGRA_GPIO(Z, 4) GPIO_ACTIVE_LOW>;
+                        status = "okay";
+                };
+*/
+        };
 
-		audio-codec@1c {
-			compatible = "realtek,rt5639";
-			reg = <0x1c>;
-			interrupt-parent = <&gpio>;
-			interrupts = <TEGRA_GPIO(V, 6) IRQ_TYPE_LEVEL_HIGH>;
-			realtek,ldo1-en-gpios = <&gpio TEGRA_GPIO(Z, 4) GPIO_ACTIVE_LOW>;
-			status = "okay";
-		};
-	};
+        /* i2c2 @ 400000hz
+        29: ambient light sensor
+        40:
+        41:
+        44:
+        45:
+        46:
+        47:
+        48:
+        49:
+        4a:
+        4b:
+        4d:
+        */
+        i2c@7000c400 {
+                status = "okay";
+                clock-frequency = <400000>;
+        };
 
-	i2c@7000c400 {
-		//status = "okay";
-		clock-frequency = <100000>;
-	};
+        /* i2c3 @ 400000hz
+        49:
+        */
+        i2c@7000c500 {
+                status = "okay";
+                clock-frequency = <400000>;
+        };
 
+        /* i2c4 @ 100000hz
+        50:
+        */
+        i2c@7000c700 {
+                status = "okay";
+                clock-frequency = <100000>;
+        };
+
+        /* i2c5 @ 400000hz
+        1b: max77621_cpu
+        1c: max77621_gpu
+        3c: max77620
+        68:
+        */
 	i2c@7000d000 {
 		status = "okay";
 		clock-frequency = <400000>;
