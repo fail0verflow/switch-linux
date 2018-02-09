@@ -145,7 +145,6 @@ CONFIG_RFKILL=y
 CONFIG_RFKILL_GPIO=y
 CONFIG_UEVENT_HELPER_PATH="/sbin/hotplug"
 CONFIG_DEVTMPFS=y
-# CONFIG_FIRMWARE_IN_KERNEL is not set
 CONFIG_EXTRA_FIRMWARE="nvidia/gm20b/pmu/desc.bin nvidia/gm20b/pmu/sig.bin nvidia/gm20b/pmu/image.bin nvidia/gm20b/acr/bl.bin nvidia/gm20b/acr/ucode_load.bin nvidia/gm20b/gr/sw_method_init.bin nvidia/gm20b/gr/gpccs_inst.bin nvidia/gm20b/gr/fecs_bl.bin nvidia/gm20b/gr/sw_bundle_init.bin nvidia/gm20b/gr/fecs_inst.bin nvidia/gm20b/gr/sw_ctx.bin nvidia/gm20b/gr/fecs_data.bin nvidia/gm20b/gr/gpccs_data.bin nvidia/gm20b/gr/sw_nonctx.bin nvidia/gm20b/gr/fecs_sig.bin nvidia/tegra210/xusb.bin nvidia/tegra210/vic04_ucode.bin"
 CONFIG_TEGRA_ACONNECT=y
 CONFIG_TEGRA_GMI=y
@@ -185,6 +184,7 @@ CONFIG_VETH=y
 # CONFIG_NET_VENDOR_CAVIUM is not set
 # CONFIG_NET_VENDOR_CHELSIO is not set
 # CONFIG_NET_VENDOR_CISCO is not set
+# CONFIG_NET_VENDOR_CORTINA is not set
 # CONFIG_NET_VENDOR_DEC is not set
 # CONFIG_NET_VENDOR_DLINK is not set
 # CONFIG_NET_VENDOR_EMULEX is not set
@@ -215,6 +215,7 @@ CONFIG_VETH=y
 # CONFIG_NET_VENDOR_SIS is not set
 # CONFIG_NET_VENDOR_SOLARFLARE is not set
 # CONFIG_NET_VENDOR_SMSC is not set
+# CONFIG_NET_VENDOR_SOCIONEXT is not set
 # CONFIG_NET_VENDOR_STMICRO is not set
 # CONFIG_NET_VENDOR_SUN is not set
 # CONFIG_NET_VENDOR_TEHUTI is not set
@@ -433,6 +434,7 @@ CONFIG_TEGRA20_APB_DMA=y
 CONFIG_TEGRA210_ADMA=y
 CONFIG_UIO=y
 CONFIG_UIO_PDRV_GENIRQ=y
+# CONFIG_VIRTIO_MENU is not set
 CONFIG_STAGING=y
 # CONFIG_COMMON_CLK_XGENE is not set
 CONFIG_PLATFORM_MHU=y
@@ -557,6 +559,7 @@ CONFIG_DEBUG_CREDENTIALS=y
 CONFIG_RCU_CPU_STALL_TIMEOUT=60
 # CONFIG_FTRACE is not set
 CONFIG_BUG_ON_DATA_CORRUPTION=y
+# CONFIG_STRICT_DEVMEM is not set
 CONFIG_DEBUG_WX=y
 CONFIG_SECURITY=y
 CONFIG_HARDENED_USERCOPY=y
