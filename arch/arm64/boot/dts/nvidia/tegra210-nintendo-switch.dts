@@ -223,10 +223,26 @@
 				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
 			};
 
+			// Audio codec
+			rt5639_pwr {
+				nvidia,pins = "pz4";
+				nvidia,pull = <TEGRA_PIN_PULL_DOWN>;
+				nvidia,tristate = <TEGRA_PIN_DISABLE>;
+				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
+				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
+			};
+			rt5639_irq {
+				nvidia,pins = "touch_rst_pv6";
+				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
+				nvidia,tristate = <TEGRA_PIN_ENABLE>;
+				nvidia,enable-input = <TEGRA_PIN_ENABLE>;
+				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
+			};
+
 			// Misc unknown GPIOs
 			in_none {
-				// p5,p4,p3,p2,s1,h5,v6,x5,y1,e6,h6,k2
-				nvidia,pins = "sdmmc3_dat0_pp5", "sdmmc3_dat1_pp4", "sdmmc3_dat2_pp3", "sdmmc3_dat3_pp2", "cam2_mclk_ps1", "bt_wake_ap_ph5", "touch_rst_pv6", "button_power_on_px5", "button_home_py1", "pe6", "ph6", "pk2";
+				// p5,p4,p3,p2,s1,h5,x5,y1,e6,h6,k2
+				nvidia,pins = "sdmmc3_dat0_pp5", "sdmmc3_dat1_pp4", "sdmmc3_dat2_pp3", "sdmmc3_dat3_pp2", "cam2_mclk_ps1", "bt_wake_ap_ph5", "button_power_on_px5", "button_home_py1", "pe6", "ph6", "pk2";
 				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
 				nvidia,tristate = <TEGRA_PIN_ENABLE>;
 				nvidia,enable-input = <TEGRA_PIN_ENABLE>;
@@ -257,8 +273,8 @@
 				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
 			};
 			out_down {
-				// e5,j5,j7,bb3,cc3,bb4,h0,h1,h3,h4,s6,v5,k3,k5,l0,z4
-				nvidia,pins = "dmic3_dat_pe5", "dap4_din_pj5", "dap4_sclk_pj7", "gpio_x1_aud_pbb3", "spdif_in_pcc3", "gpio_x3_aud_pbb4", "wifi_en_ph0", "wifi_rst_ph1", "ap_wake_bt_ph3", "bt_rst_ph4", "cam_flash_en_ps6", "ap_ready_pv5", "pk3", "pk5", "pl0", "pz4";
+				// e5,j5,j7,bb3,cc3,bb4,h0,h1,h3,h4,s6,v5,k3,k5,l0
+				nvidia,pins = "dmic3_dat_pe5", "dap4_din_pj5", "dap4_sclk_pj7", "gpio_x1_aud_pbb3", "spdif_in_pcc3", "gpio_x3_aud_pbb4", "wifi_en_ph0", "wifi_rst_ph1", "ap_wake_bt_ph3", "bt_rst_ph4", "cam_flash_en_ps6", "ap_ready_pv5", "pk3", "pk5", "pl0";
 				nvidia,pull = <TEGRA_PIN_PULL_DOWN>;
 				nvidia,tristate = <TEGRA_PIN_DISABLE>;
 				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
@@ -302,7 +318,7 @@
 	i2c@7000c000 {
 		status = "okay";
 		clock-frequency = <100000>;
-/*
+
 		audio-codec@1c {
 			compatible = "realtek,rt5639";
 			reg = <0x1c>;
@@ -311,7 +327,7 @@
 			realtek,ldo1-en-gpios = <&gpio TEGRA_GPIO(Z, 4) GPIO_ACTIVE_LOW>;
 			status = "okay";
 		};
-*/
+
 	};
 
 	/* i2c2 @ 400000hz
