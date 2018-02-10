@@ -18,6 +18,7 @@
 
 #include <linux/hwmon.h>
 #include <linux/hwmon-sysfs.h>
+#include <linux/gpio/consumer.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/of.h>
@@ -31,6 +32,7 @@
 struct pwm_fan_ctx {
 	struct mutex lock;
 	struct pwm_device *pwm;
+	struct gpio_desc *enable_gpio;
 	unsigned int pwm_value;
 	unsigned int pwm_fan_state;
 	unsigned int pwm_fan_max_state;
@@ -56,6 +58,10 @@ static int  __set_pwm(struct pwm_fan_ctx *ctx, unsigned long pwm)
 	ret = pwm_apply_state(ctx->pwm, &state);
 	if (!ret)
 		ctx->pwm_value = pwm;
+
+	if (ctx->enable_gpio)
+		gpiod_set_value(ctx->enable_gpio, !!pwm);
+
 exit_set_pwm_err:
 	mutex_unlock(&ctx->lock);
 	return ret;
@@ -238,6 +244,13 @@ static int pwm_fan_probe(struct platform_device *pdev)
 	if (ret) {
 		dev_err(&pdev->dev, "Failed to configure PWM\n");
 		return ret;
+	}
+
+	ctx->enable_gpio = devm_gpiod_get(&pdev->dev, "enable", GPIOD_OUT_HIGH);
+	if (IS_ERR(ctx->enable_gpio)) {
+		ctx->enable_gpio = NULL;
+	} else {
+		gpiod_set_value(ctx->enable_gpio, 1);
 	}
 
 	hwmon = devm_hwmon_device_register_with_groups(&pdev->dev, "pwmfan",
