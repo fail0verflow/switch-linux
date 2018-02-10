@@ -894,8 +894,6 @@
 			regulator-max-microvolt = <1800000>;
 			gpio = <&gpio TEGRA_GPIO(I, 0) GPIO_ACTIVE_HIGH>;
 			enable-active-high;
-			regulator-always-on;
-			regulator-boot-on;
 		};
 
 		vdd_lcd_2: regulator@2 {
@@ -906,8 +904,6 @@
 			regulator-max-microvolt = <1800000>;
 			gpio = <&gpio TEGRA_GPIO(I, 1) GPIO_ACTIVE_HIGH>;
 			enable-active-high;
-			regulator-always-on;
-			regulator-boot-on;
 		};
 
 		vdd_dsi_csi: regulator@3 {
