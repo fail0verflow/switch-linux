@@ -333,14 +333,6 @@
 		clock-frequency = <400000>;
 	};
 
-	/* i2c4 @ 100000hz
-	50:
-	*/
-	i2c@7000c700 {
-		status = "okay";
-		clock-frequency = <100000>;
-	};
-
 	/* i2c5 @ 400000hz
 	1b: max77621_cpu
 	1c: max77621_gpu
