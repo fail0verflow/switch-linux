@@ -329,12 +329,11 @@
 	fan: pwm-fan {
 		compatible = "pwm-fan";
 		cooling-min-state = <0>;
-		cooling-max-state = <4>;
+		cooling-max-state = <7>;
 		#cooling-cells = <2>;
 		pwms = <&pwm 1 40000 PWM_POLARITY_INVERTED>;
 		enable-gpios = <&gpio TEGRA_GPIO(A, 5) GPIO_ACTIVE_HIGH>;
-		// PWM polarity is inverted
-		cooling-levels = <255 192 128 64 0>;
+		cooling-levels = <0 64 80 96 128 160 192 255>;
 	};
 
 	/* i2c1 @ 100000hz
