@@ -93,6 +93,9 @@ static int tegra_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	c *= (1 << PWM_DUTY_WIDTH);
 	c = DIV_ROUND_CLOSEST_ULL(c, period_ns);
 
+	if (pwm->state.polarity == PWM_POLARITY_INVERSED)
+		c = (1 << PWM_DUTY_WIDTH) - c;
+
 	val = (u32)c << PWM_DUTY_SHIFT;
 
 	/*
@@ -144,6 +147,35 @@ static int tegra_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	return 0;
 }
 
+static int tegra_pwm_set_polarity(struct pwm_chip *chip,
+				struct pwm_device *pwm,
+				enum pwm_polarity polarity)
+{
+	struct tegra_pwm_chip *pc = to_tegra_pwm_chip(chip);
+	u32 val, duty;
+	int err;
+
+	if (pwm->state.polarity != polarity) {
+		if (!pwm_is_enabled(pwm)) {
+			err = clk_prepare_enable(pc->clk);
+			if (err < 0)
+				return err;
+		}
+
+		val = pwm_readl(pc, pwm->hwpwm);
+		duty = (val >> PWM_DUTY_SHIFT) & ((1 << (PWM_DUTY_WIDTH + 1)) - 1);
+		val &= ~(((1 << (PWM_DUTY_WIDTH + 1)) - 1) << PWM_DUTY_SHIFT);
+		duty = (1 << PWM_DUTY_SHIFT) - duty;
+		val |= duty << PWM_DUTY_SHIFT;
+		pwm_writel(pc, pwm->hwpwm, val);
+
+		if (!pwm_is_enabled(pwm))
+			clk_disable_unprepare(pc->clk);
+	}
+
+	return 0;
+}
+
 static int tegra_pwm_enable(struct pwm_chip *chip, struct pwm_device *pwm)
 {
 	struct tegra_pwm_chip *pc = to_tegra_pwm_chip(chip);
@@ -177,6 +209,7 @@ static const struct pwm_ops tegra_pwm_ops = {
 	.config = tegra_pwm_config,
 	.enable = tegra_pwm_enable,
 	.disable = tegra_pwm_disable,
+	.set_polarity = tegra_pwm_set_polarity,
 	.owner = THIS_MODULE,
 };
 
@@ -229,6 +262,8 @@ static int tegra_pwm_probe(struct platform_device *pdev)
 
 	pwm->chip.dev = &pdev->dev;
 	pwm->chip.ops = &tegra_pwm_ops;
+	pwm->chip.of_xlate = of_pwm_xlate_with_flags;
+	pwm->chip.of_pwm_n_cells = 3;
 	pwm->chip.base = -1;
 	pwm->chip.npwm = pwm->soc->num_channels;
 
