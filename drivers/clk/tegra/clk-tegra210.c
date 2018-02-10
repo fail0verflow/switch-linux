@@ -3366,6 +3366,7 @@ static struct tegra_clk_init_table init_table[] __initdata = {
 	{ TEGRA210_CLK_DSIBLP, TEGRA210_CLK_PLL_P, 68000000, 0 },
 	{ TEGRA210_CLK_DISP1, TEGRA210_CLK_PLL_D_OUT0, 0, 0 },
 	{ TEGRA210_CLK_DISP2, TEGRA210_CLK_PLL_D_OUT0, 0, 0 },
+	{ TEGRA210_CLK_PWM, TEGRA210_CLK_PLL_P, 48000000, 0 },
 	/* This MUST be the last entry. */
 	{ TEGRA210_CLK_CLK_MAX, TEGRA210_CLK_CLK_MAX, 0, 0 },
 };
