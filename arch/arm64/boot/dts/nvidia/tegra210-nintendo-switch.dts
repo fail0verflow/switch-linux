@@ -224,18 +224,35 @@
 			};
 
 			// Audio codec
-			rt5639_pwr {
+			rt5639_pwr { // or reset?
 				nvidia,pins = "pz4";
 				nvidia,pull = <TEGRA_PIN_PULL_DOWN>;
 				nvidia,tristate = <TEGRA_PIN_DISABLE>;
 				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
 				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
 			};
-			rt5639_irq {
+			rt5639_irq { // guess, could be bb4
 				nvidia,pins = "touch_rst_pv6";
 				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
 				nvidia,tristate = <TEGRA_PIN_ENABLE>;
 				nvidia,enable-input = <TEGRA_PIN_ENABLE>;
+				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
+			};
+			
+			// Fan
+			fan_pwr {
+				nvidia,pins = "sata_led_active_pa5";
+				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
+				nvidia,tristate = <TEGRA_PIN_DISABLE>;
+				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
+				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
+			};
+			fan_pwm {
+				nvidia,pins = "lcd_gpio2_pv4";
+				nvidia,function = "pwm1";
+				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
+				nvidia,tristate = <TEGRA_PIN_DISABLE>;
+				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
 				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
 			};
 
@@ -257,24 +274,24 @@
 				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
 			};
 			in_down {
-				// p0,s0,h2,x2,k0,k1,z2
-				nvidia,pins = "sdmmc3_clk_pp0", "cam1_mclk_ps0", "wifi_wake_ap_ph2", "motion_int_px2", "pk0", "pk1", "pz2";
+				// p0,s0,h2,x2,k0,k1,z2,bb4
+				nvidia,pins = "sdmmc3_clk_pp0", "cam1_mclk_ps0", "wifi_wake_ap_ph2", "motion_int_px2", "pk0", "pk1", "pz2", "gpio_x3_aud_pbb4";
 				nvidia,pull = <TEGRA_PIN_PULL_DOWN>;
 				nvidia,tristate = <TEGRA_PIN_ENABLE>;
 				nvidia,enable-input = <TEGRA_PIN_ENABLE>;
 				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
 			};
 			out_none {
-				// a5,cc4,h7
-				nvidia,pins = "sata_led_active_pa5", "usb_vbus_en0_pcc4", "ap_wake_nfc_ph7";
+				// cc4,h7
+				nvidia,pins = "usb_vbus_en0_pcc4", "ap_wake_nfc_ph7";
 				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
 				nvidia,tristate = <TEGRA_PIN_DISABLE>;
 				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
 				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
 			};
 			out_down {
-				// e5,j5,j7,bb3,cc3,bb4,h0,h1,h3,h4,s6,v5,k3,k5,l0
-				nvidia,pins = "dmic3_dat_pe5", "dap4_din_pj5", "dap4_sclk_pj7", "gpio_x1_aud_pbb3", "spdif_in_pcc3", "gpio_x3_aud_pbb4", "wifi_en_ph0", "wifi_rst_ph1", "ap_wake_bt_ph3", "bt_rst_ph4", "cam_flash_en_ps6", "ap_ready_pv5", "pk3", "pk5", "pl0";
+				// e5,j5,j7,bb3,cc3,h0,h1,h3,h4,s6,v5,k3,k5,l0
+				nvidia,pins = "dmic3_dat_pe5", "dap4_din_pj5", "dap4_sclk_pj7", "gpio_x1_aud_pbb3", "spdif_in_pcc3", "wifi_en_ph0", "wifi_rst_ph1", "ap_wake_bt_ph3", "bt_rst_ph4", "cam_flash_en_ps6", "ap_ready_pv5", "pk3", "pk5", "pl0";
 				nvidia,pull = <TEGRA_PIN_PULL_DOWN>;
 				nvidia,tristate = <TEGRA_PIN_DISABLE>;
 				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
@@ -305,6 +322,26 @@
 
 	pwm@7000a000 {
 		status = "okay";
+	};
+
+	gpio@6000d000 {
+		// Enable the fan. Speed is controlled via PWM.
+		// TODO: implement enable GPIO support in pwm-fan
+		fan-enable {
+			gpio-hog;
+			gpios = <&gpio TEGRA_GPIO(A, 5) GPIO_ACTIVE_HIGH>;
+			output-high;
+		};
+	};
+
+	fan: pwm-fan {
+		compatible = "pwm-fan";
+		cooling-min-state = <0>;
+		cooling-max-state = <4>;
+		#cooling-cells = <2>;
+		pwms = <&pwm 1 10000000>;
+		// PWM polarity is inverted
+		cooling-levels = <255 192 128 64 0>;
 	};
 
 	/* i2c1 @ 100000hz
