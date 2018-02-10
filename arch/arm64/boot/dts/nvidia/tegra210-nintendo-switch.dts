@@ -256,6 +256,15 @@
 				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
 				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
 			};
+			
+			// Touchscreen
+			touch_enable {
+				nvidia,pins = "dap4_sclk_pj7";
+				nvidia,pull = <TEGRA_PIN_PULL_DOWN>;
+				nvidia,tristate = <TEGRA_PIN_DISABLE>;
+				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
+				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
+			};
 
 			// Misc unknown GPIOs
 			in_none {
@@ -291,8 +300,8 @@
 				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
 			};
 			out_down {
-				// e5,j5,j7,bb3,cc3,h0,h1,h3,h4,s6,v5,k3,k5,l0
-				nvidia,pins = "dmic3_dat_pe5", "dap4_din_pj5", "dap4_sclk_pj7", "gpio_x1_aud_pbb3", "spdif_in_pcc3", "wifi_en_ph0", "wifi_rst_ph1", "ap_wake_bt_ph3", "bt_rst_ph4", "cam_flash_en_ps6", "ap_ready_pv5", "pk3", "pk5", "pl0";
+				// e5,j5,bb3,cc3,h0,h1,h3,h4,s6,v5,k3,k5,l0
+				nvidia,pins = "dmic3_dat_pe5", "dap4_din_pj5", "gpio_x1_aud_pbb3", "spdif_in_pcc3", "wifi_en_ph0", "wifi_rst_ph1", "ap_wake_bt_ph3", "bt_rst_ph4", "cam_flash_en_ps6", "ap_ready_pv5", "pk3", "pk5", "pl0";
 				nvidia,pull = <TEGRA_PIN_PULL_DOWN>;
 				nvidia,tristate = <TEGRA_PIN_DISABLE>;
 				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
@@ -384,6 +393,15 @@
 	i2c@7000c500 {
 		status = "okay";
 		clock-frequency = <400000>;
+		
+		stmfts: touchscreen@49 {
+			compatible = "st,stmfts";
+			reg = <0x49>;
+			interrupt-parent = <&gpio>;
+			interrupts = <TEGRA_GPIO(X, 1) IRQ_TYPE_LEVEL_LOW>;
+			avdd-supply = <&avdd_touchscreen>;
+			vdd-supply = <&vdd_touchscreen>;
+		};
 	};
 
 	/* i2c5 @ 400000hz
@@ -925,6 +943,27 @@
 			regulator-name = "USBC_VBUS";
 			regulator-min-microvolt = <5000000>;
 			regulator-max-microvolt = <5000000>;
+		};
+
+		vdd_touchscreen: regulator@5 {
+			compatible = "regulator-fixed";
+			reg = <5>;
+			regulator-name = "vdd_touchscreen";
+			regulator-min-microvolt = <1800000>;
+			regulator-max-microvolt = <1800000>;
+			gpio = <&gpio TEGRA_GPIO(J, 7) GPIO_ACTIVE_HIGH>;
+			enable-active-high;
+		};
+
+		avdd_touchscreen: regulator@6 {
+			compatible = "regulator-fixed";
+			reg = <6>;
+			regulator-name = "avdd_touchscreen";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+			// gpio?
+			regulator-always-on;
+			regulator-boot-on;
 		};
 	};
 };
