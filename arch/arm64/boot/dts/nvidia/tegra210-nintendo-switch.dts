@@ -103,10 +103,10 @@
 	};
 
 	pinmux: pinmux@700008d4 {
-		pinctrl-names = "boot";
-		pinctrl-0 = <&state_boot>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&state_default>;
 
-		state_boot: pinmux {
+		state_default: pinmux {
 			// I2C
 			gen1_i2c_sda_pj0 {
 				nvidia,pins = "gen1_i2c_sda_pj0";
