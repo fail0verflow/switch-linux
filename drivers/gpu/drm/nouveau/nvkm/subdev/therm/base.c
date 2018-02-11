@@ -301,9 +301,6 @@ nvkm_therm_attr_set(struct nvkm_therm *therm,
 void
 nvkm_therm_clkgate_enable(struct nvkm_therm *therm)
 {
-	if (!therm || !therm->func)
-		return;
-
 	if (!therm->func->clkgate_enable || !therm->clkgating_enabled)
 		return;
 
@@ -315,9 +312,6 @@ nvkm_therm_clkgate_enable(struct nvkm_therm *therm)
 void
 nvkm_therm_clkgate_fini(struct nvkm_therm *therm, bool suspend)
 {
-	if (!therm || !therm->func)
-		return;
-
 	if (!therm->func->clkgate_fini || !therm->clkgating_enabled)
 		return;
 
@@ -330,9 +324,6 @@ nvkm_therm_clkgate_fini(struct nvkm_therm *therm, bool suspend)
 static void
 nvkm_therm_clkgate_oneinit(struct nvkm_therm *therm)
 {
-	if (!therm || !therm->func)
-		return;
-
 	if (!therm->func->clkgate_enable || !therm->clkgating_enabled)
 		return;
 
@@ -351,9 +342,6 @@ static int
 nvkm_therm_fini(struct nvkm_subdev *subdev, bool suspend)
 {
 	struct nvkm_therm *therm = nvkm_therm(subdev);
-
-	if (!therm || !therm->func)
-		return;
 
 	if (therm->func->fini)
 		therm->func->fini(therm);
