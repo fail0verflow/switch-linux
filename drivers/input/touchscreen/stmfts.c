@@ -14,6 +14,7 @@
 #include <linux/module.h>
 #include <linux/pm_runtime.h>
 #include <linux/regulator/consumer.h>
+#include <linux/kthread.h>
 
 /* I2C commands */
 #define STMFTS_READ_INFO			0x80
@@ -104,6 +105,8 @@ struct stmfts_data {
 	bool led_status;
 	bool hover_enabled;
 	bool running;
+
+	struct task_struct *poll_thread;
 };
 
 static void stmfts_brightness_set(struct led_classdev *led_cdev,
@@ -312,6 +315,18 @@ static irqreturn_t stmfts_irq_handler(int irq, void *dev)
 	mutex_unlock(&sdata->mutex);
 	return IRQ_HANDLED;
 }
+
+static int stmfts_poll_thread(void *data)
+{
+	printk("poll_thread starting\n");
+	while (!kthread_should_stop()) {
+		stmfts_irq_handler(0, data);
+		msleep(2);
+	}
+	printk("poll_thread exiting\n");
+	return 0;
+}
+
 
 static int stmfts_command(struct stmfts_data *sdata, const u8 cmd)
 {
@@ -546,18 +561,26 @@ static int stmfts_power_on(struct stmfts_data *sdata)
 	sdata->fw_ver = be16_to_cpup((__be16 *)&reg[2]);
 	sdata->config_id = reg[4];
 	sdata->config_ver = reg[5];
-
-	enable_irq(sdata->client->irq);
+	
+	if (sdata->client->irq)
+		enable_irq(sdata->client->irq);
 
 	msleep(50);
 
+	if (!sdata->client->irq) {
+		sdata->poll_thread = kthread_run(stmfts_poll_thread, sdata, "stmfts_poll");
+		if (IS_ERR(sdata->poll_thread))
+			return -EIO;
+	}
+
 	err = stmfts_command(sdata, STMFTS_SYSTEM_RESET);
 	if (err)
-		return err;
+		goto stop_thread;
 
 	err = stmfts_command(sdata, STMFTS_SLEEP_OUT);
 	if (err)
-		return err;
+		dev_warn(&sdata->client->dev,
+			 "failed to perform sleep_out: %d\n", err);
 
 	/* optional tuning */
 	err = stmfts_command(sdata, STMFTS_MS_CX_TUNING);
@@ -573,7 +596,7 @@ static int stmfts_power_on(struct stmfts_data *sdata)
 
 	err = stmfts_command(sdata, STMFTS_FULL_FORCE_CALIBRATION);
 	if (err)
-		return err;
+		goto stop_thread;
 
 	/*
 	 * At this point no one is using the touchscreen
@@ -582,13 +605,21 @@ static int stmfts_power_on(struct stmfts_data *sdata)
 	(void) i2c_smbus_write_byte(sdata->client, STMFTS_SLEEP_IN);
 
 	return 0;
+
+stop_thread:
+	if (!sdata->client->irq)
+		kthread_stop(sdata->poll_thread);
+	return err;
 }
 
 static void stmfts_power_off(void *data)
 {
 	struct stmfts_data *sdata = data;
 
-	disable_irq(sdata->client->irq);
+	if (!sdata->client->irq)
+		kthread_stop(sdata->poll_thread);
+	else
+		disable_irq(sdata->client->irq);
 	regulator_bulk_disable(ARRAY_SIZE(sdata->regulators),
 						sdata->regulators);
 }
@@ -689,13 +720,15 @@ static int stmfts_probe(struct i2c_client *client,
 	 * interrupts. To be on the safe side it's better to not enable
 	 * the interrupts during their request.
 	 */
-	irq_set_status_flags(client->irq, IRQ_NOAUTOEN);
-	err = devm_request_threaded_irq(&client->dev, client->irq,
-					NULL, stmfts_irq_handler,
-					IRQF_ONESHOT,
-					"stmfts_irq", sdata);
-	if (err)
-		return err;
+	if (client->irq) {
+		irq_set_status_flags(client->irq, IRQ_NOAUTOEN);
+		err = devm_request_threaded_irq(&client->dev, client->irq,
+						NULL, stmfts_irq_handler,
+						IRQF_ONESHOT,
+						"stmfts_irq", sdata);
+		if (err)
+			return err;
+	}
 
 	dev_dbg(&client->dev, "initializing ST-Microelectronics FTS...\n");
 
