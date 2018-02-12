@@ -1065,8 +1065,9 @@
 		      <0 0x70110200 0 0x100>; /* Look-up table RAM */
 		interrupts = <GIC_SPI 62 IRQ_TYPE_LEVEL_HIGH>;
 		clocks = <&tegra_car TEGRA210_CLK_DFLL_SOC>,
-			 <&tegra_car TEGRA210_CLK_DFLL_REF>;
-		clock-names = "soc", "ref";
+			 <&tegra_car TEGRA210_CLK_DFLL_REF>,
+			 <&tegra_car TEGRA210_CLK_I2C5>;
+		clock-names = "soc", "ref", "i2c";
 		resets = <&tegra_car TEGRA210_RST_DFLL_DVCO>;
 		reset-names = "dvco";
 		#clock-cells = <0>;
