@@ -407,6 +407,7 @@
 			ti,system-minimum-microvolt = <3200000>;
 			monitored-battery = <&bat>;
 			status = "okay";
+			omit-battery-class;
 		};
 
 		battery-charger@36 {
