@@ -200,7 +200,7 @@
 				nvidia,tristate = <TEGRA_PIN_DISABLE>;
 				nvidia,enable-input = <TEGRA_PIN_ENABLE>;
 				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
-			};			
+			};
 			sdmmc1_cd {
 				nvidia,pins = "pz1";
 				nvidia,function = "sdmmc1";
@@ -259,7 +259,7 @@
 				nvidia,enable-input = <TEGRA_PIN_ENABLE>;
 				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
 			};
-			
+
 			// Fan
 			fan_pwr {
 				nvidia,pins = "sata_led_active_pa5";
@@ -276,7 +276,7 @@
 				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
 				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
 			};
-			
+
 			// Touchscreen
 			touch_enable {
 				nvidia,pins = "dap4_sclk_pj7";
@@ -413,7 +413,7 @@
 	i2c@7000c500 {
 		status = "okay";
 		clock-frequency = <400000>;
-		
+
 		stmfts: touchscreen@49 {
 			compatible = "st,stmfts";
 			reg = <0x49>;
@@ -469,7 +469,7 @@
 					maxim,active-fps-power-up-slot = <4>;
 					maxim,active-fps-power-down-slot = <2>;
 				};
-				
+
 				pin_32k {
 					pins = "gpio4";
 					function = "32k-out1";
