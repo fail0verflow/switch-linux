@@ -45,17 +45,17 @@
 		vddio-pex-ctl-supply = <&vdd_1v8>;
 
 		pci@1,0 {
-			phys = <&{/padctl@7009f000/pads/pcie/lanes/pcie-0}>,
-			       <&{/padctl@7009f000/pads/pcie/lanes/pcie-1}>,
+			phys = <&{/padctl@7009f000/pads/pcie/lanes/pcie-1}>,
 			       <&{/padctl@7009f000/pads/pcie/lanes/pcie-2}>,
-			       <&{/padctl@7009f000/pads/pcie/lanes/pcie-3}>;
+			       <&{/padctl@7009f000/pads/pcie/lanes/pcie-3}>,
+			       <&{/padctl@7009f000/pads/pcie/lanes/pcie-4}>;
 			phy-names = "pcie-0", "pcie-1", "pcie-2", "pcie-3";
 			status = "okay";
 		};
 
 		pci@2,0 {
-			phys = <&{/padctl@7009f000/pads/pcie/lanes/pcie-4}>;
-			phy-names = "pcie-4";
+			phys = <&{/padctl@7009f000/pads/pcie/lanes/pcie-0}>;
+			phy-names = "pcie-0";
 			status = "okay";
 		};
 	};
