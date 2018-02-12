@@ -1029,6 +1029,7 @@
 		cpu {
 			polling-delay-passive = <250>;
 			polling-delay = <500>;
+			hwmon;
 
 			trips {
 				cpu_alert0: cpu-alert-0 {
@@ -1085,6 +1086,7 @@
 		gpu {
 			polling-delay-passive = <250>;
 			polling-delay = <500>;
+			hwmon;
 
 			trips {
 				gpu_alert0: gpu-alert-0 {
@@ -1136,6 +1138,14 @@
 					cooling-device = <&fan 6 THERMAL_NO_LIMIT>;
 				};
 			};
+		};
+
+		mem {
+			hwmon;
+		};
+
+		pllx {
+			hwmon;
 		};
 
 		pmic {
