@@ -401,6 +401,8 @@
 // 			interrupts = <TEGRA_GPIO(X, 1) IRQ_TYPE_LEVEL_HIGH>;
 			avdd-supply = <&avdd_touchscreen>;
 			vdd-supply = <&vdd_touchscreen>;
+			touchscreen-size-x = <1280>;
+			touchscreen-size-y = <720>;
 		};
 	};
 
