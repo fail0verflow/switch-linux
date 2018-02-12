@@ -365,6 +365,12 @@
 		cooling-levels = <0 64 80 96 128 160 192 255>;
 	};
 
+	bat: battery {
+		compatible = "simple-battery";
+		precharge-current-microamp = <512000>;
+		charge-term-current-microamp = <256000>;
+	};
+
 	/* i2c1 @ 100000hz
 	18: usb power delivery
 	1c: realtek 5639
@@ -386,12 +392,30 @@
 			status = "okay";
 		};
 
+		temperature-sensor@4c {
+			compatible = "ti,tmp451";
+			reg = <0x4c>;
+// 			interrupt-parent = <&gpio>;
+// 			interrupts = <TEGRA_GPIO(I, 6) IRQ_TYPE_LEVEL_LOW>;
+		};
+
+		bq24190: charger@6b {
+			compatible = "ti,bq24190";
+			reg = <0x6b>;
+			interrupt-parent = <&gpio>;
+			interrupts = <TEGRA_GPIO(Z, 0) IRQ_TYPE_EDGE_FALLING>;
+			ti,system-minimum-microvolt = <3200000>;
+			monitored-battery = <&bat>;
+			status = "okay";
+		};
+
 		battery-charger@36 {
 			compatible = "maxim,max17050";
 			reg = <0x36>;
 			maxim,rsns-microohm = <10000>;
 			maxim,over-heat-temp = <600>;
 			maxim,over-volt = <4300>;
+			monitored-battery = <&bat>;
 			status = "okay";
 		};
 	};
