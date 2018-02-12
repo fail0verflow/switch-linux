@@ -432,7 +432,7 @@ static int tegra_powergate_power_up(struct tegra_powergate *pg,
 
 	usleep_range(10, 20);
 
-	if (pg->pmc->soc->needs_mbist_war)
+// 	if (pg->pmc && pg->pmc->soc && pg->pmc->soc->needs_mbist_war)
 		err = tegra210_clk_handle_mbist_war(pg->id);
 	if (err)
 		goto disable_clks;
@@ -589,6 +589,7 @@ int tegra_powergate_sequence_power_up(unsigned int id, struct clk *clk,
 	if (!tegra_powergate_is_available(id))
 		return -EINVAL;
 
+	pg.pmc = NULL;
 	pg.id = id;
 	pg.clks = &clk;
 	pg.num_clks = 1;
