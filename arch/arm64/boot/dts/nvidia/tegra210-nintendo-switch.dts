@@ -994,6 +994,9 @@
 
 	thermal-zones {
 		cpu {
+			polling-delay-passive = <250>;
+			polling-delay = <500>;
+
 			trips {
 				cpu_alert0: cpu-alert-0 {
 					temperature = <40000>;
@@ -1047,6 +1050,9 @@
 		};
 
 		gpu {
+			polling-delay-passive = <250>;
+			polling-delay = <500>;
+
 			trips {
 				gpu_alert0: gpu-alert-0 {
 					temperature = <40000>;
@@ -1078,11 +1084,11 @@
 			cooling-maps {
 				map1 {
 					trip = <&gpu_alert0>;
-					cooling-device = <&fan THERMAL_NO_LIMIT 1>;
+					cooling-device = <&fan 1 2>;
 				};
 				map2 {
 					trip = <&gpu_alert1>;
-					cooling-device = <&fan 1 3>;
+					cooling-device = <&fan 2 3>;
 				};
 				map3 {
 					trip = <&gpu_alert2>;
@@ -1100,8 +1106,8 @@
 		};
 
 		pmic {
-			polling-delay = <0>;
-			polling-delay-passive = <0>;
+			polling-delay-passive = <250>;
+			polling-delay = <500>;
 			thermal-sensors = <&max77620>;
 
 			trips {
@@ -1128,8 +1134,8 @@
 		};
 
 		cpu_vreg {
-			polling-delay = <0>;
-			polling-delay-passive = <0>;
+			polling-delay-passive = <250>;
+			polling-delay = <500>;
 			thermal-sensors = <&max77621_cpu>;
 
 			trips {
@@ -1150,8 +1156,8 @@
 		};
 
 		gpu_vreg {
-			polling-delay = <0>;
-			polling-delay-passive = <0>;
+			polling-delay-passive = <250>;
+			polling-delay = <500>;
 			thermal-sensors = <&max77621_gpu>;
 
 			trips {
