@@ -1638,6 +1638,7 @@ static int bq24190_hw_init(struct bq24190_dev_info *bdi)
 		return ret;
 
 	if (v != BQ24190_REG_VPRS_PN_24190 &&
+	    v != BQ24190_REG_VPRS_PN_24192 &&
 	    v != BQ24190_REG_VPRS_PN_24192I) {
 		dev_err(bdi->dev, "Error unknown model: 0x%02x\n", v);
 		return -ENODEV;
