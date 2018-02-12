@@ -386,6 +386,14 @@
 			status = "okay";
 		};
 
+		battery-charger@36 {
+			compatible = "maxim,max17050";
+			reg = <0x36>;
+			maxim,rsns-microohm = <10000>;
+			maxim,over-heat-temp = <600>;
+			maxim,over-volt = <4300>;
+			status = "okay";
+		};
 	};
 
 	/* i2c2 @ 400000hz
