@@ -172,6 +172,7 @@ static int stmfts_read_events(struct stmfts_data *sdata)
 static void stmfts_report_contact_event(struct stmfts_data *sdata,
 					const u8 event[])
 {
+#if 0
 	u8 slot_id = (event[0] & STMFTS_MASK_TOUCH_ID) >> 4;
 	u16 x = event[1] | ((event[2] & STMFTS_MASK_X_MSB) << 8);
 	u16 y = (event[2] >> 4) | (event[3] << 4);
@@ -179,7 +180,17 @@ static void stmfts_report_contact_event(struct stmfts_data *sdata,
 	u8 min = event[5];
 	u8 orientation = event[6];
 	u8 area = event[7];
+#else
+	u8 slot_id = (event[0] & STMFTS_MASK_TOUCH_ID) >> 4;
+	u16 x = (event[1] << 4) | ((event[3] & 0xf0) >> 4);
+	u16 y = (event[2] << 4) | (event[3] & 0x0f);
 
+	u8 maj = event[4] | (event[5] << 8);
+	u8 min = maj;
+	// these two are not quite right but meh
+	u8 orientation = event[6];
+	u8 area = event[7];
+#endif
 	input_mt_slot(sdata->input, slot_id);
 
 	input_mt_report_slot_state(sdata->input, MT_TOOL_FINGER, true);
