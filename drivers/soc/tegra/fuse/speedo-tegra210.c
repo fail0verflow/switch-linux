@@ -69,6 +69,7 @@ static void __init rev_sku_to_speedo_ids(struct tegra_sku_info *sku_info,
 					 u8 speedo_rev, int *threshold)
 {
 	int sku = sku_info->sku_id;
+	int rev = sku_info->revision;
 
 	/* Assign to default */
 	sku_info->cpu_speedo_id = 0;
@@ -77,27 +78,38 @@ static void __init rev_sku_to_speedo_ids(struct tegra_sku_info *sku_info,
 	*threshold = THRESHOLD_INDEX_0;
 
 	switch (sku) {
-	case 0x00: /* Engineering SKU */
 	case 0x01: /* Engineering SKU */
+	case 0x13: /* Engineering SKU */
+		if (rev == TEGRA_REVISION_A02) {
+			sku_info->cpu_speedo_id = 1;
+			sku_info->gpu_speedo_id = 2;
+		}
+		/* fall through for a01 */
+	case 0x00: /* Engineering SKU */
 	case 0x07:
 	case 0x17:
 	case 0x27:
-		if (speedo_rev >= 2)
-			sku_info->gpu_speedo_id = 1;
+		sku_info->gpu_speedo_id = 1;
 		break;
-
-	case 0x13:
-		if (speedo_rev >= 2)
-			sku_info->gpu_speedo_id = 1;
-
-		sku_info->cpu_speedo_id = 1;
+	case 0x83:
+		if (rev == TEGRA_REVISION_A02) {
+			sku_info->cpu_speedo_id = 1;
+			sku_info->gpu_speedo_id = 4;
+			break;
+		}
+		/* fall through for a01 */
+	case 0x87:
+		sku_info->gpu_speedo_id = 3;
 		break;
-
 	default:
 		pr_err("Tegra210: unknown SKU %#04x\n", sku);
 		/* Using the default for the error case */
 		break;
 	}
+
+	/* Overwrite GPU speedo selection for speedo revision 0, 1 */
+	if (speedo_rev < 2)
+		sku_info->gpu_speedo_id = 0;
 }
 
 static int get_process_id(int value, const u32 *speedos, unsigned int num)
