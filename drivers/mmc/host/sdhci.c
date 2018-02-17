@@ -1929,6 +1929,10 @@ int sdhci_start_signal_voltage_switch(struct mmc_host *mmc,
 	case MMC_SIGNAL_VOLTAGE_330:
 		if (!(host->flags & SDHCI_SIGNALING_330))
 			return -EINVAL;
+
+		if (host->ops->pre_voltage_switch)
+			host->ops->pre_voltage_switch(host, ios);
+
 		/* Set 1.8V Signal Enable in the Host Control2 register to 0 */
 		ctrl &= ~SDHCI_CTRL_VDD_180;
 		sdhci_writew(host, ctrl, SDHCI_HOST_CONTROL2);
@@ -1941,6 +1945,11 @@ int sdhci_start_signal_voltage_switch(struct mmc_host *mmc,
 				return -EIO;
 			}
 		}
+
+		/* Some controller need to do more when switching */
+		if (host->ops->voltage_switch)
+			host->ops->voltage_switch(host, ios);
+
 		/* Wait for 5ms */
 		usleep_range(5000, 5500);
 
@@ -1956,6 +1965,11 @@ int sdhci_start_signal_voltage_switch(struct mmc_host *mmc,
 	case MMC_SIGNAL_VOLTAGE_180:
 		if (!(host->flags & SDHCI_SIGNALING_180))
 			return -EINVAL;
+
+		/* Some controller need to do more when switching */
+		if (host->ops->pre_voltage_switch)
+			host->ops->pre_voltage_switch(host, ios);
+
 		if (!IS_ERR(mmc->supply.vqmmc)) {
 			ret = mmc_regulator_set_vqmmc(mmc, ios);
 			if (ret) {
@@ -1974,7 +1988,7 @@ int sdhci_start_signal_voltage_switch(struct mmc_host *mmc,
 
 		/* Some controller need to do more when switching */
 		if (host->ops->voltage_switch)
-			host->ops->voltage_switch(host);
+			host->ops->voltage_switch(host, ios);
 
 		/* 1.8V regulator output should be stable within 5 ms */
 		ctrl = sdhci_readw(host, SDHCI_HOST_CONTROL2);

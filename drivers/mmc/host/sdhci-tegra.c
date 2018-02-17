@@ -289,7 +289,7 @@ static int tegra_sdhci_execute_tuning(struct sdhci_host *host, u32 opcode)
 	return mmc_send_tuning(host->mmc, opcode, NULL);
 }
 
-static void tegra_sdhci_voltage_switch(struct sdhci_host *host)
+static void tegra_sdhci_voltage_switch(struct sdhci_host *host, struct mmc_ios *ios)
 {
 	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
 	struct sdhci_tegra *tegra_host = sdhci_pltfm_priv(pltfm_host);

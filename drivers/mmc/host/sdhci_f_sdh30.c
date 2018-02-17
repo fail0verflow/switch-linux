@@ -53,10 +53,15 @@ struct f_sdhost_priv {
 	bool enable_cmd_dat_delay;
 };
 
-static void sdhci_f_sdh30_soft_voltage_switch(struct sdhci_host *host)
+static void sdhci_f_sdh30_soft_voltage_switch(struct sdhci_host *host,
+					      struct mmc_ios *ios)
 {
 	struct f_sdhost_priv *priv = sdhci_priv(host);
 	u32 ctrl = 0;
+
+	// FIXME: do something when switching back to 3.3V?
+	if (ios->signal_voltage != MMC_SIGNAL_VOLTAGE_180)
+		return;
 
 	usleep_range(2500, 3000);
 	ctrl = sdhci_readl(host, F_SDH30_IO_CONTROL2);
