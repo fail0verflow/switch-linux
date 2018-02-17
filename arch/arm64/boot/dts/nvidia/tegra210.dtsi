@@ -6,6 +6,7 @@
 #include <dt-bindings/reset/tegra210-car.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/thermal/tegra124-soctherm.h>
+#include <dt-bindings/soc/tegra/pmc.h>
 
 / {
 	compatible = "nvidia,tegra210";
@@ -1012,6 +1013,7 @@
 		clock-names = "sdhci";
 		resets = <&tegra_car 14>;
 		reset-names = "sdhci";
+		nvidia,pad = <TEGRA_IO_PAD_SDMMC1>;
 		status = "disabled";
 	};
 
@@ -1034,6 +1036,7 @@
 		clock-names = "sdhci";
 		resets = <&tegra_car 69>;
 		reset-names = "sdhci";
+		nvidia,pad = <TEGRA_IO_PAD_SDMMC3>;
 		status = "disabled";
 	};
 
