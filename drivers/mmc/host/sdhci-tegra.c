@@ -27,6 +27,7 @@
 #include <linux/mmc/mmc.h>
 #include <linux/mmc/slot-gpio.h>
 #include <linux/gpio/consumer.h>
+#include <soc/tegra/pmc.h>
 
 #include "sdhci-pltfm.h"
 
@@ -55,6 +56,7 @@
 #define NVQUIRK_ENABLE_SDR104		BIT(4)
 #define NVQUIRK_ENABLE_DDR50		BIT(5)
 #define NVQUIRK_HAS_PADCALIB		BIT(6)
+#define NVQUIRK_NEEDS_PAD_CONTROL	BIT(7)
 
 struct sdhci_tegra_soc_data {
 	const struct sdhci_pltfm_data *pdata;
@@ -66,6 +68,8 @@ struct sdhci_tegra {
 	struct gpio_desc *power_gpio;
 	bool ddr_signaling;
 	bool pad_calib_required;
+	bool pad_control;
+	unsigned int pad_id;
 
 	struct reset_control *rst;
 };
@@ -166,7 +170,9 @@ static void tegra_sdhci_reset(struct sdhci_host *host, u8 mask)
 	 * even if the device supports it because the IO voltage
 	 * cannot be configured.
 	 */
-	if (!IS_ERR(host->mmc->supply.vqmmc)) {
+	if (!IS_ERR(host->mmc->supply.vqmmc) &&
+	    (!(soc_data->nvquirks & NVQUIRK_NEEDS_PAD_CONTROL) ||
+	     tegra_host->pad_control)) {
 		/* Erratum: Enable SDHCI spec v3.00 support */
 		if (soc_data->nvquirks & NVQUIRK_ENABLE_SDHCI_SPEC_300)
 			misc_ctrl |= SDHCI_MISC_CTRL_ENABLE_SDHCI_SPEC_300;
@@ -297,6 +303,24 @@ static void tegra_sdhci_voltage_switch(struct sdhci_host *host, struct mmc_ios *
 
 	if (soc_data->nvquirks & NVQUIRK_HAS_PADCALIB)
 		tegra_host->pad_calib_required = true;
+
+	if (ios->signal_voltage == MMC_SIGNAL_VOLTAGE_180) {
+		if (tegra_host->pad_control) {
+			tegra_io_pad_set_voltage(tegra_host->pad_id, TEGRA_IO_PAD_1800000UV);
+		}
+	}
+}
+
+static void tegra_sdhci_pre_voltage_switch(struct sdhci_host *host, struct mmc_ios *ios)
+{
+	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
+	struct sdhci_tegra *tegra_host = sdhci_pltfm_priv(pltfm_host);
+
+	if (ios->signal_voltage == MMC_SIGNAL_VOLTAGE_330) {
+		if (tegra_host->pad_control) {
+			tegra_io_pad_set_voltage(tegra_host->pad_id, TEGRA_IO_PAD_3300000UV);
+		}
+	}
 }
 
 static const struct sdhci_ops tegra_sdhci_ops = {
@@ -308,6 +332,7 @@ static const struct sdhci_ops tegra_sdhci_ops = {
 	.reset      = tegra_sdhci_reset,
 	.platform_execute_tuning = tegra_sdhci_execute_tuning,
 	.set_uhs_signaling = tegra_sdhci_set_uhs_signaling,
+	.pre_voltage_switch = tegra_sdhci_pre_voltage_switch,
 	.voltage_switch = tegra_sdhci_voltage_switch,
 	.get_max_clock = tegra_sdhci_get_max_clock,
 };
@@ -458,6 +483,8 @@ static int sdhci_tegra_probe(struct platform_device *pdev)
 	struct sdhci_tegra *tegra_host;
 	struct clk *clk;
 	int rc;
+	struct device_node *np = pdev->dev.of_node;
+	u32 prop;
 
 	match = of_match_device(sdhci_tegra_dt_match, &pdev->dev);
 	if (!match)
@@ -472,7 +499,13 @@ static int sdhci_tegra_probe(struct platform_device *pdev)
 	tegra_host = sdhci_pltfm_priv(pltfm_host);
 	tegra_host->ddr_signaling = false;
 	tegra_host->pad_calib_required = false;
+	tegra_host->pad_control = false;
 	tegra_host->soc_data = soc_data;
+
+	if (!of_property_read_u32(np, "nvidia,pad", &prop)) {
+		tegra_host->pad_control = true;
+		tegra_host->pad_id = prop;
+	}
 
 	rc = mmc_of_parse(host->mmc);
 	if (rc)
