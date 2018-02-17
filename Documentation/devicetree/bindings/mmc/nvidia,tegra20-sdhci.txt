@@ -23,6 +23,8 @@ Required properties:
 
 Optional properties:
 - power-gpios : Specify GPIOs for power control
+- nvidia,pad : Specify the pad ID for controlling the I/O voltage level.
+  Required for 1.8V mode support on Tegra210.
 
 Example:
 
