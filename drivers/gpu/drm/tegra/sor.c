@@ -342,7 +342,7 @@ struct tegra_sor {
 	struct drm_info_list *debugfs_files;
 
 	const struct tegra_sor_ops *ops;
-	enum tegra_io_pad pad;
+	unsigned int pad;
 
 	/* for HDMI 2.0 */
 	struct tegra_sor_hdmi_settings *settings;

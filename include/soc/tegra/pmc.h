@@ -22,6 +22,7 @@
 #include <linux/reboot.h>
 
 #include <soc/tegra/pm.h>
+#include <dt-bindings/soc/tegra/pmc.h>
 
 struct clk;
 struct reset_control;
@@ -70,72 +71,6 @@ int tegra_pmc_cpu_remove_clamping(unsigned int cpuid);
 
 #define TEGRA_POWERGATE_3D0	TEGRA_POWERGATE_3D
 
-/**
- * enum tegra_io_pad - I/O pad group identifier
- *
- * I/O pins on Tegra SoCs are grouped into so-called I/O pads. Each such pad
- * can be used to control the common voltage signal level and power state of
- * the pins of the given pad.
- */
-enum tegra_io_pad {
-	TEGRA_IO_PAD_AUDIO,
-	TEGRA_IO_PAD_AUDIO_HV,
-	TEGRA_IO_PAD_BB,
-	TEGRA_IO_PAD_CAM,
-	TEGRA_IO_PAD_COMP,
-	TEGRA_IO_PAD_CONN,
-	TEGRA_IO_PAD_CSIA,
-	TEGRA_IO_PAD_CSIB,
-	TEGRA_IO_PAD_CSIC,
-	TEGRA_IO_PAD_CSID,
-	TEGRA_IO_PAD_CSIE,
-	TEGRA_IO_PAD_CSIF,
-	TEGRA_IO_PAD_DBG,
-	TEGRA_IO_PAD_DEBUG_NONAO,
-	TEGRA_IO_PAD_DMIC,
-	TEGRA_IO_PAD_DMIC_HV,
-	TEGRA_IO_PAD_DP,
-	TEGRA_IO_PAD_DSI,
-	TEGRA_IO_PAD_DSIB,
-	TEGRA_IO_PAD_DSIC,
-	TEGRA_IO_PAD_DSID,
-	TEGRA_IO_PAD_EDP,
-	TEGRA_IO_PAD_EMMC,
-	TEGRA_IO_PAD_EMMC2,
-	TEGRA_IO_PAD_GPIO,
-	TEGRA_IO_PAD_HDMI,
-	TEGRA_IO_PAD_HDMI_DP0,
-	TEGRA_IO_PAD_HDMI_DP1,
-	TEGRA_IO_PAD_HSIC,
-	TEGRA_IO_PAD_HV,
-	TEGRA_IO_PAD_LVDS,
-	TEGRA_IO_PAD_MIPI_BIAS,
-	TEGRA_IO_PAD_NAND,
-	TEGRA_IO_PAD_PEX_BIAS,
-	TEGRA_IO_PAD_PEX_CLK_BIAS,
-	TEGRA_IO_PAD_PEX_CLK1,
-	TEGRA_IO_PAD_PEX_CLK2,
-	TEGRA_IO_PAD_PEX_CLK3,
-	TEGRA_IO_PAD_PEX_CNTRL,
-	TEGRA_IO_PAD_SDMMC1,
-	TEGRA_IO_PAD_SDMMC1_HV,
-	TEGRA_IO_PAD_SDMMC2,
-	TEGRA_IO_PAD_SDMMC2_HV,
-	TEGRA_IO_PAD_SDMMC3,
-	TEGRA_IO_PAD_SDMMC3_HV,
-	TEGRA_IO_PAD_SDMMC4,
-	TEGRA_IO_PAD_SPI,
-	TEGRA_IO_PAD_SPI_HV,
-	TEGRA_IO_PAD_SYS_DDC,
-	TEGRA_IO_PAD_UART,
-	TEGRA_IO_PAD_UFS,
-	TEGRA_IO_PAD_USB0,
-	TEGRA_IO_PAD_USB1,
-	TEGRA_IO_PAD_USB2,
-	TEGRA_IO_PAD_USB3,
-	TEGRA_IO_PAD_USB_BIAS,
-};
-
 /* deprecated, use TEGRA_IO_PAD_{HDMI,LVDS} instead */
 #define TEGRA_IO_RAIL_HDMI	TEGRA_IO_PAD_HDMI
 #define TEGRA_IO_RAIL_LVDS	TEGRA_IO_PAD_LVDS
@@ -160,11 +95,11 @@ int tegra_powergate_remove_clamping(unsigned int id);
 int tegra_powergate_sequence_power_up(unsigned int id, struct clk *clk,
 				      struct reset_control *rst);
 
-int tegra_io_pad_power_enable(enum tegra_io_pad id);
-int tegra_io_pad_power_disable(enum tegra_io_pad id);
-int tegra_io_pad_set_voltage(enum tegra_io_pad id,
+int tegra_io_pad_power_enable(unsigned int id);
+int tegra_io_pad_power_disable(unsigned int id);
+int tegra_io_pad_set_voltage(unsigned int id,
 			     enum tegra_io_pad_voltage voltage);
-int tegra_io_pad_get_voltage(enum tegra_io_pad id);
+int tegra_io_pad_get_voltage(unsigned int id);
 
 /* deprecated, use tegra_io_pad_power_{enable,disable}() instead */
 int tegra_io_rail_power_on(unsigned int id);
@@ -202,23 +137,23 @@ static inline int tegra_powergate_sequence_power_up(unsigned int id,
 	return -ENOSYS;
 }
 
-static inline int tegra_io_pad_power_enable(enum tegra_io_pad id)
+static inline int tegra_io_pad_power_enable(unsigned int id)
 {
 	return -ENOSYS;
 }
 
-static inline int tegra_io_pad_power_disable(enum tegra_io_pad id)
+static inline int tegra_io_pad_power_disable(unsigned int id)
 {
 	return -ENOSYS;
 }
 
-static inline int tegra_io_pad_set_voltage(enum tegra_io_pad id,
+static inline int tegra_io_pad_set_voltage(unsigned int id,
 					   enum tegra_io_pad_voltage voltage)
 {
 	return -ENOSYS;
 }
 
-static inline int tegra_io_pad_get_voltage(enum tegra_io_pad id)
+static inline int tegra_io_pad_get_voltage(unsigned int id)
 {
 	return -ENOSYS;
 }
