@@ -417,6 +417,7 @@
 			maxim,over-heat-temp = <600>;
 			maxim,over-volt = <4300>;
 			monitored-battery = <&bat>;
+			power-supplies = <&bq24190>;
 			status = "okay";
 		};
 	};
