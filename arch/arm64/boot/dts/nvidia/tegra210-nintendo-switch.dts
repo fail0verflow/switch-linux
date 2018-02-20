@@ -709,12 +709,10 @@
 					maxim,active-fps-power-down-slot = <7>;
 				};
 
-				vdd_unk_ldo6: ldo6 {
+				avdd_touchscreen: ldo6 {
 					regulator-name = "UNK_LDO6";
 					regulator-min-microvolt = <2900000>;
 					regulator-max-microvolt = <2900000>;
-					regulator-always-on;
-					regulator-boot-on;
 
 					regulator-enable-ramp-delay = <36>;
 					regulator-disable-ramp-delay = <674>;
@@ -1015,17 +1013,6 @@
 			regulator-max-microvolt = <1800000>;
 			gpio = <&gpio TEGRA_GPIO(J, 7) GPIO_ACTIVE_HIGH>;
 			enable-active-high;
-		};
-
-		avdd_touchscreen: regulator@6 {
-			compatible = "regulator-fixed";
-			reg = <6>;
-			regulator-name = "avdd_touchscreen";
-			regulator-min-microvolt = <3300000>;
-			regulator-max-microvolt = <3300000>;
-			// gpio?
-			regulator-always-on;
-			regulator-boot-on;
 		};
 	};
 
