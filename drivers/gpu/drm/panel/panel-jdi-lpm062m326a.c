@@ -29,6 +29,8 @@
 
 #include <video/mipi_display.h>
 
+#define SLEEPY 2
+
 struct jdi_panel {
 	struct drm_panel base;
 	struct mipi_dsi_device *dsi;
@@ -109,7 +111,7 @@ static int jdi_panel_init(struct jdi_panel *jdi)
 			break;
 	}
 
-	msleep(10);
+	msleep(10 * SLEEPY);
 
 	ret = mipi_dsi_dcs_exit_sleep_mode(dsi);
 	if (ret < 0)
@@ -123,7 +125,7 @@ static int jdi_panel_init(struct jdi_panel *jdi)
 		init_cmds++;
 	}
 
-	msleep(180);
+	msleep(180 * SLEEPY);
 
 	ret = mipi_dsi_dcs_set_column_address(dsi, 0,
 				jdi->mode->hdisplay - 1);
@@ -162,7 +164,7 @@ static int jdi_panel_on(struct jdi_panel *jdi)
 	if (ret < 0)
 		return ret;
 
-	msleep(20);
+	msleep(20 * SLEEPY);
 
 	return 0;
 }
@@ -220,9 +222,9 @@ static int jdi_panel_unprepare(struct drm_panel *panel)
 	if (jdi->reset_gpio)
 		gpiod_set_value(jdi->reset_gpio, 0);
 
-	msleep(10);
+	msleep(10 * SLEEPY);
 	regulator_disable(jdi->supply2);
-	msleep(10);
+	msleep(10 * SLEEPY);
 	regulator_disable(jdi->supply1);
 
 	jdi->prepared = false;
@@ -241,17 +243,17 @@ static int jdi_panel_prepare(struct drm_panel *panel)
 	ret = regulator_enable(jdi->supply1);
 	if (ret < 0)
 		return ret;
-	msleep(10);
+	msleep(10 * SLEEPY);
 	ret = regulator_enable(jdi->supply2);
 	if (ret < 0)
 		goto poweroff1;
-	msleep(10);
+	msleep(10 * SLEEPY);
 
 	if (jdi->reset_gpio) {
 		gpiod_set_value(jdi->reset_gpio, 0);
-		msleep(10);
+		msleep(10 * SLEEPY);
 		gpiod_set_value(jdi->reset_gpio, 1);
-		msleep(60);
+		msleep(60 * SLEEPY);
 	}
 
 	ret = jdi_panel_init(jdi);
