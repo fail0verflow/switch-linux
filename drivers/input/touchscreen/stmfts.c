@@ -35,6 +35,7 @@
 #define STMFTS_FULL_FORCE_CALIBRATION		0xa2
 #define STMFTS_MS_CX_TUNING			0xa3
 #define STMFTS_SS_CX_TUNING			0xa4
+#define STMFTS_WRITE_REGISTER			0xb6
 
 /* events */
 #define STMFTS_EV_NO_EVENT			0x00
@@ -105,6 +106,8 @@ struct stmfts_data {
 	bool led_status;
 	bool hover_enabled;
 	bool running;
+	int irq_enable_reg;
+	u8 irq_enable_data;
 
 	struct task_struct *poll_thread;
 };
@@ -329,12 +332,10 @@ static irqreturn_t stmfts_irq_handler(int irq, void *dev)
 
 static int stmfts_poll_thread(void *data)
 {
-	printk("poll_thread starting\n");
 	while (!kthread_should_stop()) {
 		stmfts_irq_handler(0, data);
 		msleep(2);
 	}
-	printk("poll_thread exiting\n");
 	return 0;
 }
 
@@ -354,6 +355,18 @@ static int stmfts_command(struct stmfts_data *sdata, const u8 cmd)
 		return -ETIMEDOUT;
 
 	return 0;
+}
+
+static int stmfts_write_register(struct stmfts_data *sdata, const u16 reg, const u8 value)
+{
+	u8 buf[3];
+
+	buf[0] = reg >> 8;
+	buf[1] = reg & 0xff;
+	buf[2] = value;
+
+	return i2c_smbus_write_i2c_block_data(sdata->client,
+					      STMFTS_WRITE_REGISTER, 3, buf);
 }
 
 static int stmfts_input_open(struct input_dev *dev)
@@ -584,9 +597,33 @@ static int stmfts_power_on(struct stmfts_data *sdata)
 			return -EIO;
 	}
 
-	err = stmfts_command(sdata, STMFTS_SYSTEM_RESET);
+	/*
+	 * IRQs may be disabled on startup, so we need to reset the chip, then
+	 * immediately issue the command to enable IRQs. This will trigger
+	 * the completion for the reset command's queued status message.
+	 */
+	reinit_completion(&sdata->cmd_done);
+
+	err = i2c_smbus_write_byte(sdata->client, STMFTS_SYSTEM_RESET);
 	if (err)
-		goto stop_thread;
+		goto cleanup_irq;
+
+	msleep(10);
+
+	if (sdata->client->irq && sdata->irq_enable_reg != -1) {
+		err = stmfts_write_register(sdata, sdata->irq_enable_reg,
+					    sdata->irq_enable_data);
+		if (err)
+			goto cleanup_irq;
+	}
+
+	if (!wait_for_completion_timeout(&sdata->cmd_done,
+					 msecs_to_jiffies(1000))) {
+		err = -ETIMEDOUT;
+		dev_err(&sdata->client->dev,
+			 "reset did not complete\n", err);
+		goto cleanup_irq;
+	}
 
 	err = stmfts_command(sdata, STMFTS_SLEEP_OUT);
 	if (err)
@@ -606,8 +643,11 @@ static int stmfts_power_on(struct stmfts_data *sdata)
 			 "failed to perform self auto tune: %d\n", err);
 
 	err = stmfts_command(sdata, STMFTS_FULL_FORCE_CALIBRATION);
-	if (err)
-		goto stop_thread;
+	if (err) {
+		dev_err(&sdata->client->dev,
+			 "failed to perform calibration: %d\n", err);
+		goto cleanup_irq;
+	}
 
 	/*
 	 * At this point no one is using the touchscreen
@@ -617,9 +657,11 @@ static int stmfts_power_on(struct stmfts_data *sdata)
 
 	return 0;
 
-stop_thread:
+cleanup_irq:
 	if (!sdata->client->irq)
 		kthread_stop(sdata->poll_thread);
+	else
+		disable_irq(sdata->client->irq);
 	return err;
 }
 
@@ -667,6 +709,7 @@ static int stmfts_probe(struct i2c_client *client,
 {
 	int err;
 	struct stmfts_data *sdata;
+	u32 prop[2];
 
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C |
 						I2C_FUNC_SMBUS_BYTE_DATA |
@@ -712,6 +755,15 @@ static int stmfts_probe(struct i2c_client *client,
 
 	sdata->use_key = device_property_read_bool(&client->dev,
 						   "touch-key-connected");
+	
+	if (!device_property_read_u32_array(&client->dev,
+		"interrupt-enable-reg", prop, 2)) {
+		sdata->irq_enable_reg = prop[0] & 0xffff;
+		sdata->irq_enable_data = prop[1] & 0xff;
+	} else {
+		sdata->irq_enable_reg = -1;
+	}
+	
 	if (sdata->use_key) {
 		input_set_capability(sdata->input, EV_KEY, KEY_MENU);
 		input_set_capability(sdata->input, EV_KEY, KEY_BACK);
