@@ -622,7 +622,7 @@ static int stmfts_power_on(struct stmfts_data *sdata)
 					 msecs_to_jiffies(1000))) {
 		err = -ETIMEDOUT;
 		dev_err(&sdata->client->dev,
-			 "reset did not complete\n", err);
+			 "reset did not complete: %d\n", err);
 		goto cleanup_irq;
 	}
 
