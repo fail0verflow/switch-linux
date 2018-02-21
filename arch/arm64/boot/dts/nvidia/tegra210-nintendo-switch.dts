@@ -451,6 +451,11 @@
 	i2c@7000c400 {
 		status = "okay";
 		clock-frequency = <400000>;
+
+		light-sensor@29 {
+			compatible = "rohm,bh1730fvc";
+			reg = <0x29>;
+		};
 	};
 
 	/* i2c3 @ 400000hz
