@@ -18,6 +18,7 @@
 #include <linux/iio/iio.h>
 #include <linux/module.h>
 #include <linux/of.h>
+#include <linux/time.h>
 
 #define BH1730_CMD_BIT BIT(7)
 
@@ -128,7 +129,7 @@ static int bh1730_set_integration_time_ms(struct bh1730_data *bh1730,
 					  int time_ms)
 {
 	int ret;
-	u64 time_ns = time_ms * 1000000ULL;
+	u64 time_ns = time_ms * (u64)NSEC_PER_MSEC;
 	u64 itime_step_ns = BH1730_INTERNAL_CLOCK_NS * 964;
 	int itime = 256 - (int)DIV_ROUND_CLOSEST_ULL(time_ns, itime_step_ns);
 
@@ -197,7 +198,7 @@ static int bh1730_adjust_gain(struct bh1730_data *bh1730)
 static s64 bh1730_get_millilux(struct bh1730_data *bh1730)
 {
 	int visible, ir, visible_coef, ir_coef;
-	u64 itime_us = bh1730_itime_ns(bh1730) / 1000;
+	u64 itime_us = bh1730_itime_ns(bh1730) / NSEC_PER_USEC;
 	u64 millilux;
 
 	visible = bh1730_read_word(bh1730, BH1730_REG_DATA0LOW);
@@ -227,7 +228,7 @@ static s64 bh1730_get_millilux(struct bh1730_data *bh1730)
 		return 0;
 	}
 
-	millilux = 1000ULL * (visible_coef * visible - ir_coef * ir);
+	millilux = (u64)USEC_PER_MSEC * (visible_coef * visible - ir_coef * ir);
 	millilux /= bh1730_gain_multiplier(bh1730);
 	millilux *= 103;
 	millilux /= itime_us;
