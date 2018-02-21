@@ -106,6 +106,7 @@ struct stmfts_data {
 	bool led_status;
 	bool hover_enabled;
 	bool running;
+	bool no_sleep_support;
 	int irq_enable_reg;
 	u8 irq_enable_data;
 
@@ -626,9 +627,11 @@ static int stmfts_power_on(struct stmfts_data *sdata)
 	}
 
 	err = stmfts_command(sdata, STMFTS_SLEEP_OUT);
-	if (err)
+	if (err) {
 		dev_warn(&sdata->client->dev,
 			 "failed to perform sleep_out: %d\n", err);
+		sdata->no_sleep_support = true;
+	}
 
 	/* optional tuning */
 	err = stmfts_command(sdata, STMFTS_MS_CX_TUNING);
@@ -653,7 +656,8 @@ static int stmfts_power_on(struct stmfts_data *sdata)
 	 * At this point no one is using the touchscreen
 	 * and I don't really care about the return value
 	 */
-	(void) i2c_smbus_write_byte(sdata->client, STMFTS_SLEEP_IN);
+	if (!sdata->no_sleep_support)
+		(void) i2c_smbus_write_byte(sdata->client, STMFTS_SLEEP_IN);
 
 	return 0;
 
@@ -842,6 +846,9 @@ static int __maybe_unused stmfts_runtime_suspend(struct device *dev)
 	struct stmfts_data *sdata = dev_get_drvdata(dev);
 	int ret;
 
+	if (sdata->no_sleep_support)
+		return 0;
+
 	ret = i2c_smbus_write_byte(sdata->client, STMFTS_SLEEP_IN);
 	if (ret)
 		dev_warn(dev, "failed to suspend device: %d\n", ret);
@@ -853,6 +860,9 @@ static int __maybe_unused stmfts_runtime_resume(struct device *dev)
 {
 	struct stmfts_data *sdata = dev_get_drvdata(dev);
 	int ret;
+
+	if (sdata->no_sleep_support)
+		return 0;
 
 	ret = i2c_smbus_write_byte(sdata->client, STMFTS_SLEEP_OUT);
 	if (ret)
