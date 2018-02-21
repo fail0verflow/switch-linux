@@ -185,11 +185,13 @@ static int bh1730_adjust_gain(struct bh1730_data *bh1730)
 			break;
 	}
 
-	ret = bh1730_set_gain(bh1730, i);
-	if (ret < 0)
-		return ret;
+	if (i != bh1730->gain) {
+		ret = bh1730_set_gain(bh1730, i);
+		if (ret < 0)
+			return ret;
 
-	bh1730_wait_for_next_measurement(bh1730);
+		bh1730_wait_for_next_measurement(bh1730);
+	}
 	return 0;
 }
 
