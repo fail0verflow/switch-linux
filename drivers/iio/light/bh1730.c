@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
  * ROHM BH1730 ambient light sensor driver
  *
@@ -7,10 +8,6 @@
  * Based on a previous non-iio BH1730FVC driver:
  * Copyright (C) 2012 Samsung Electronics. All rights reserved.
  * Author: Won Huh <won.huh@samsung.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
  *
  * Data sheets:
  *  http://www.rohm.com/web/global/datasheet/BH1730FVC/bh1730fvc-e
