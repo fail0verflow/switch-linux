@@ -267,7 +267,7 @@
 
 			// Fan
 			fan_pwr {
-				nvidia,pins = "sata_led_active_pa5";
+				nvidia,pins = "sata_led_active_pa5", "usb_vbus_en0_pcc4";
 				nvidia,function = "rsvd3";
 				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
 				nvidia,tristate = <TEGRA_PIN_DISABLE>;
@@ -322,8 +322,8 @@
 				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
 			};
 			out_none {
-				// cc4,h7
-				nvidia,pins = "usb_vbus_en0_pcc4", "ap_wake_nfc_ph7";
+				// h7
+				nvidia,pins = "ap_wake_nfc_ph7";
 				nvidia,function = "rsvd3";
 				nvidia,pull = <TEGRA_PIN_PULL_NONE>;
 				nvidia,tristate = <TEGRA_PIN_DISABLE>;
@@ -347,19 +347,30 @@
 		status = "okay";
 	};
 
+	/* joycon ports:
+	invert TXD and RTS via IRDA_CSR
+	start @ 1000000 baud, switch to 3000000
+	when they are >= 3000000 baud, use 2 stop bits
+	use flow control
+	*/
 	/* right joycon */
 	serial@70006040 {
 		status = "okay";
-	};
-
-	/* bluetooth */
-	serial@70006200 {
-		status = "okay";
+		//uart-has-rtscts;
 	};
 
 	/* left joycon */
+	serial@70006200 {
+		status = "okay";
+		uart-has-rtscts;
+	};
+
+	/* bluetooth */
 	serial@70006300 {
 		status = "okay";
+		uart-has-rtscts;
+		// starts @ 115200, can switch to 3000000
+		// flow control, 1 stop bit
 	};
 
 	pwm@7000a000 {
@@ -384,12 +395,11 @@
 	};
 
 	/* i2c1 @ 100000hz
-	18: usb power delivery
+	18: rohm usb-pd
 	1c: realtek 5639
-	36: some maxim fuel gauge
-	4c:
-	52:
-	6b:
+	36: maxim fuel gauge
+	4c: ti temperature sensor
+	6b: ti charger
 	*/
 	i2c@7000c000 {
 		status = "okay";
@@ -407,8 +417,6 @@
 		temperature-sensor@4c {
 			compatible = "ti,tmp451";
 			reg = <0x4c>;
-// 			interrupt-parent = <&gpio>;
-// 			interrupts = <TEGRA_GPIO(I, 6) IRQ_TYPE_LEVEL_LOW>;
 		};
 
 		bq24190: charger@6b {
@@ -425,6 +433,8 @@
 		battery-charger@36 {
 			compatible = "maxim,max17050";
 			reg = <0x36>;
+			interrupt-parent = <&gpio>;
+			interrupts = <TEGRA_GPIO(Y, 0) IRQ_TYPE_LEVEL_LOW>;
 			maxim,rsns-microohm = <10000>;
 			maxim,over-heat-temp = <600>;
 			maxim,over-volt = <4300>;
@@ -435,18 +445,7 @@
 	};
 
 	/* i2c2 @ 400000hz
-	29: ambient light sensor
-	40:
-	41:
-	44:
-	45:
-	46:
-	47:
-	48:
-	49:
-	4a:
-	4b:
-	4d:
+	29: rohm ambient light sensor
 	*/
 	i2c@7000c400 {
 		status = "okay";
@@ -459,7 +458,7 @@
 	};
 
 	/* i2c3 @ 400000hz
-	49:
+	49: stm touchscreen controller
 	*/
 	i2c@7000c500 {
 		status = "okay";
