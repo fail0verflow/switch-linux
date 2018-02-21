@@ -40,6 +40,8 @@
 
 #define BH1730_INTERNAL_CLOCK_NS	2800ULL
 
+#define BH1730_DEFAULT_INTEG_MS		150
+
 enum bh1730_gain {
 	BH1730_GAIN_1X = 0,
 	BH1730_GAIN_2X,
@@ -206,18 +208,21 @@ static s64 bh1730_get_millilux(struct bh1730_data *bh1730)
 	if (ir < 0)
 		return ir;
 
-	if (ir * 1000 / visible < 260) {
-		visible_coef = 1290;
-		ir_coef = 2733;
-	} else if (ir * 1000 / visible < 550) {
-		visible_coef = 795;
-		ir_coef = 859;
-	} else if (ir * 1000 / visible < 1090) {
-		visible_coef = 510;
-		ir_coef = 345;
-	} else if (ir * 1000 / visible < 2130) {
-		visible_coef = 276;
-		ir_coef = 130;
+	if (ir * 1000 / visible < 500) {
+		visible_coef = 5002;
+		ir_coef = 7502;
+	} else if (ir * 1000 / visible < 754) {
+		visible_coef = 2250;
+		ir_coef = 2000;
+	} else if (ir * 1000 / visible < 1029) {
+		visible_coef = 1999;
+		ir_coef = 1667;
+	} else if (ir * 1000 / visible < 1373) {
+		visible_coef = 885;
+		ir_coef = 583;
+	} else if (ir * 1000 / visible < 1879) {
+		visible_coef = 309;
+		ir_coef = 165;
 	} else {
 		return 0;
 	}
@@ -250,7 +255,7 @@ static int bh1730_set_defaults(struct bh1730_data *bh1730)
 	if (ret < 0)
 		return ret;
 
-	ret = bh1730_set_integration_time_ms(bh1730, 150);
+	ret = bh1730_set_integration_time_ms(bh1730, BH1730_DEFAULT_INTEG_MS);
 	if (ret < 0)
 		return ret;
 
@@ -268,7 +273,8 @@ static int bh1730_read_raw(struct iio_dev *indio_dev,
 			   int *val, int *val2, long mask)
 {
 	struct bh1730_data *bh1730 = iio_priv(indio_dev);
-	long long ret;
+	int ret;
+	s64 millilux;
 
 	ret = bh1730_adjust_gain(bh1730);
 	if (ret < 0)
@@ -276,11 +282,11 @@ static int bh1730_read_raw(struct iio_dev *indio_dev,
 
 	switch (mask) {
 	case IIO_CHAN_INFO_PROCESSED:
-		ret = bh1730_get_millilux(bh1730);
-		if (ret < 0)
-			return ret;
-		*val = ret / 1000;
-		*val2 = (ret % 1000) * 1000;
+		millilux = bh1730_get_millilux(bh1730);
+		if (millilux < 0)
+			return millilux;
+		*val = millilux / 1000;
+		*val2 = (millilux % 1000) * 1000;
 		return IIO_VAL_INT_PLUS_MICRO;
 	case IIO_CHAN_INFO_RAW:
 		switch (chan->channel2) {
