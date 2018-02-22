@@ -62,8 +62,7 @@ static int bh1730_read_word(struct bh1730_data *bh1730, u8 reg)
 					   BH1730_CMD_BIT | reg);
 	if (ret < 0)
 		dev_err(&bh1730->client->dev,
-			"i2c_smbus_read_word_data failed error "
-			"%d, register %01x\n",
+			"i2c read failed error %d, register %01x\n",
 			ret, reg);
 	return ret;
 }
@@ -75,8 +74,7 @@ static int bh1730_write(struct bh1730_data *bh1730, u8 reg, u8 val)
 					    val);
 	if (ret < 0)
 		dev_err(&bh1730->client->dev,
-			"i2c_smbus_write_byte_data failed error "
-			"%d, register %01x\n",
+			"i2c write failed error %d, register %01x\n",
 			ret, reg);
 	return ret;
 }
@@ -100,6 +98,7 @@ static int gain_setting_to_multiplier(enum bh1730_gain gain)
 static int bh1730_gain_multiplier(struct bh1730_data *bh1730)
 {
 	int multiplier = gain_setting_to_multiplier(bh1730->gain);
+
 	if (multiplier < 0) {
 		dev_warn(&bh1730->client->dev,
 			 "invalid gain multiplier settings: %d\n",
@@ -107,6 +106,7 @@ static int bh1730_gain_multiplier(struct bh1730_data *bh1730)
 		bh1730->gain = BH1730_GAIN_1X;
 		multiplier = 1;
 	}
+
 	return multiplier;
 }
 
@@ -118,6 +118,7 @@ static u64 bh1730_itime_ns(struct bh1730_data *bh1730)
 static int bh1730_set_gain(struct bh1730_data *bh1730, enum bh1730_gain gain)
 {
 	int ret = bh1730_write(bh1730, BH1730_REG_GAIN, gain);
+
 	if (ret < 0)
 		return ret;
 
@@ -167,20 +168,24 @@ static int bh1730_adjust_gain(struct bh1730_data *bh1730)
 
 	highest = max(visible, ir);
 
-	/* If the read value is being clamped, assume the worst and go to the
+	/*
+	 * If the read value is being clamped, assume the worst and go to the
 	 * lowest possible gain. The alternative is doing multiple
-	 * recalibrations, which would be slower and have the same effect. */
-	if (highest == USHRT_MAX) {
+	 * recalibrations, which would be slower and have the same effect.
+	 */
+	if (highest == USHRT_MAX)
 		highest *= 128;
-	} else {
+	else
 		highest = (highest * 128) / bh1730_gain_multiplier(bh1730);
-	}
 
-	/* Find the lowest gain multiplier which puts the measured values
+	/*
+	 * Find the lowest gain multiplier which puts the measured values
 	 * above 1024. This threshold is chosen to match the gap between 2X
-	 * multiplier and 64X (next available) while keeping some margin. */
+	 * multiplier and 64X (next available) while keeping some margin.
+	 */
 	for (i = BH1730_GAIN_1X; i < BH1730_GAIN_128X; ++i) {
 		int adj = highest * gain_setting_to_multiplier(i) / 128;
+
 		if (adj >= 1024)
 			break;
 	}
@@ -237,15 +242,8 @@ static s64 bh1730_get_millilux(struct bh1730_data *bh1730)
 
 static int bh1730_power_on(struct bh1730_data *bh1730)
 {
-	int ret;
-	int control =
-		BH1730_CONTROL_POWER_ON |
-		BH1730_CONTROL_MEASURE;
-
-	ret = bh1730_write(bh1730, BH1730_REG_CONTROL, control);
-	if (ret < 0)
-		return ret;
-	return 0;
+	return bh1730_write(bh1730, BH1730_REG_CONTROL,
+			    BH1730_CONTROL_POWER_ON | BH1730_CONTROL_MEASURE);
 }
 
 static int bh1730_set_defaults(struct bh1730_data *bh1730)
@@ -341,8 +339,7 @@ static const struct iio_chan_spec bh1730_channels[] = {
 	},
 };
 
-static int bh1730_probe(struct i2c_client *client,
-			const struct i2c_device_id *id)
+static int bh1730_probe(struct i2c_client *client)
 {
 	struct bh1730_data *bh1730;
 	struct i2c_adapter *adapter = to_i2c_adapter(client->dev.parent);
@@ -394,12 +391,6 @@ static int bh1730_remove(struct i2c_client *client)
 	return bh1730_power_off(bh1730);
 }
 
-static const struct i2c_device_id bh1730_id[] = {
-	{ "bh1730", 0 },
-	{},
-};
-MODULE_DEVICE_TABLE(i2c, bh1730_id);
-
 #ifdef CONFIG_OF
 static const struct of_device_id of_bh1730_match[] = {
 	{ .compatible = "rohm,bh1730fvc" },
@@ -409,9 +400,8 @@ MODULE_DEVICE_TABLE(of, of_bh1730_match);
 #endif
 
 static struct i2c_driver bh1730_driver = {
-	.probe = bh1730_probe,
+	.probe_new = bh1730_probe,
 	.remove = bh1730_remove,
-	.id_table = bh1730_id,
 	.driver = {
 		.name = "bh1730",
 		.of_match_table = of_match_ptr(of_bh1730_match),
