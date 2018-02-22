@@ -319,19 +319,17 @@ static const struct iio_info bh1730_info = {
 static const struct iio_chan_spec bh1730_channels[] = {
 	{
 		.type = IIO_LIGHT,
-		.modified = 1,
-		.channel2 = IIO_MOD_LIGHT_BOTH,
 		.info_mask_separate = BIT(IIO_CHAN_INFO_PROCESSED),
 	},
 	{
-		.type = IIO_LIGHT,
+		.type = IIO_INTENSITY,
 		.modified = 1,
 		.channel2 = IIO_MOD_LIGHT_CLEAR,
 		.info_mask_separate = BIT(IIO_CHAN_INFO_RAW) |
 				      BIT(IIO_CHAN_INFO_SCALE),
 	},
 	{
-		.type = IIO_LIGHT,
+		.type = IIO_INTENSITY,
 		.modified = 1,
 		.channel2 = IIO_MOD_LIGHT_IR,
 		.info_mask_separate = BIT(IIO_CHAN_INFO_RAW) |
