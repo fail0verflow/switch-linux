@@ -293,6 +293,40 @@
 				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
 			};
 
+			// Bluetooth
+			bt_rst {
+				nvidia,pins = "bt_rst_ph4";
+				nvidia,function = "rsvd0";
+				nvidia,pull = <TEGRA_PIN_PULL_DOWN>;
+				nvidia,tristate = <TEGRA_PIN_DISABLE>;
+				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
+				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
+			};
+			bt_wake {
+				nvidia,pins = "ap_wake_bt_ph3";
+				nvidia,function = "rsvd0";
+				nvidia,pull = <TEGRA_PIN_PULL_DOWN>;
+				nvidia,tristate = <TEGRA_PIN_DISABLE>;
+				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
+				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
+			};
+			bt_uart_tx {
+				nvidia,pins = "uart4_tx_pi4", "uart4_rts_pi6";
+				nvidia,function = "uartd";
+				nvidia,pull = <TEGRA_PIN_PULL_DOWN>;
+				nvidia,tristate = <TEGRA_PIN_DISABLE>;
+				nvidia,enable-input = <TEGRA_PIN_DISABLE>;
+				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
+			};
+			bt_uart_rx {
+				nvidia,pins = "uart4_rx_pi5", "uart4_cts_pi7";
+				nvidia,function = "uartd";
+				nvidia,pull = <TEGRA_PIN_PULL_DOWN>;
+				nvidia,tristate = <TEGRA_PIN_ENABLE>;
+				nvidia,enable-input = <TEGRA_PIN_ENABLE>;
+				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
+			};
+
 			// Misc unknown GPIOs
 			in_none {
 				// p5,p4,p3,p2,s1,h5,x5,y1,e6,h6,k2
@@ -331,8 +365,8 @@
 				nvidia,open-drain = <TEGRA_PIN_DISABLE>;
 			};
 			out_down {
-				// e5,j5,bb3,cc3,h0,h1,h3,h4,s6,v5,k3,k5,l0
-				nvidia,pins = "dmic3_dat_pe5", "dap4_din_pj5", "gpio_x1_aud_pbb3", "spdif_in_pcc3", "wifi_en_ph0", "wifi_rst_ph1", "ap_wake_bt_ph3", "bt_rst_ph4", "cam_flash_en_ps6", "ap_ready_pv5", "pk3", "pk5", "pl0";
+				// e5,j5,bb3,cc3,h0,h1,s6,v5,k3,k5,l0
+				nvidia,pins = "dmic3_dat_pe5", "dap4_din_pj5", "gpio_x1_aud_pbb3", "spdif_in_pcc3", "wifi_en_ph0", "wifi_rst_ph1", "cam_flash_en_ps6", "ap_ready_pv5", "pk3", "pk5", "pl0";
 				nvidia,function = "rsvd3";
 				nvidia,pull = <TEGRA_PIN_PULL_DOWN>;
 				nvidia,tristate = <TEGRA_PIN_DISABLE>;
@@ -352,25 +386,33 @@
 	start @ 1000000 baud, switch to 3000000
 	when they are >= 3000000 baud, use 2 stop bits
 	use flow control
+	Note: hsuart driver is required for flow control
 	*/
 	/* right joycon */
 	serial@70006040 {
 		status = "okay";
-		//uart-has-rtscts;
+		//compatible = "nvidia,tegra124-hsuart", "nvidia,tegra30-hsuart";
 	};
 
 	/* left joycon */
 	serial@70006200 {
 		status = "okay";
-		uart-has-rtscts;
+		compatible = "nvidia,tegra124-hsuart", "nvidia,tegra30-hsuart";
 	};
 
 	/* bluetooth */
 	serial@70006300 {
 		status = "okay";
-		uart-has-rtscts;
-		// starts @ 115200, can switch to 3000000
+		// starts @ 115200, switches to 3000000
 		// flow control, 1 stop bit
+		compatible = "nvidia,tegra124-hsuart", "nvidia,tegra30-hsuart";
+
+		bluetooth {
+			compatible = "brcm,bcm43438-bt";
+			shutdown-gpios = <&gpio TEGRA_GPIO(H, 4) GPIO_ACTIVE_HIGH>;
+			// level correct?
+			device-wakeup-gpios = <&gpio TEGRA_GPIO(H, 3) GPIO_ACTIVE_LOW>;
+		};
 	};
 
 	pwm@7000a000 {
