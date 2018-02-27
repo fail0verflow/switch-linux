@@ -39,7 +39,7 @@
 #define BH1730_CONTROL_POWER_ON		BIT(0)
 #define BH1730_CONTROL_MEASURE		BIT(1)
 
-#define BH1730_INTERNAL_CLOCK_NS	2800ULL
+#define BH1730_INTERNAL_CLOCK_NS	2800
 
 #define BH1730_DEFAULT_INTEG_MS		150
 
@@ -49,6 +49,7 @@ enum bh1730_gain {
 	BH1730_GAIN_64X,
 	BH1730_GAIN_128X,
 };
+#define BH1730_MAX_GAIN_MULTIPLIER 128
 
 struct bh1730_data {
 	struct i2c_client *client;
@@ -64,6 +65,7 @@ static int bh1730_read_word(struct bh1730_data *bh1730, u8 reg)
 		dev_err(&bh1730->client->dev,
 			"i2c read failed error %d, register %01x\n",
 			ret, reg);
+
 	return ret;
 }
 
@@ -76,6 +78,7 @@ static int bh1730_write(struct bh1730_data *bh1730, u8 reg, u8 val)
 		dev_err(&bh1730->client->dev,
 			"i2c write failed error %d, register %01x\n",
 			ret, reg);
+
 	return ret;
 }
 
@@ -91,7 +94,7 @@ static int gain_setting_to_multiplier(enum bh1730_gain gain)
 	case BH1730_GAIN_128X:
 		return 128;
 	default:
-		return -1;
+		return -EINVAL;
 	}
 }
 
@@ -110,9 +113,10 @@ static int bh1730_gain_multiplier(struct bh1730_data *bh1730)
 	return multiplier;
 }
 
-static u64 bh1730_itime_ns(struct bh1730_data *bh1730)
+static int bh1730_itime_us(struct bh1730_data *bh1730)
 {
-	return BH1730_INTERNAL_CLOCK_NS * 964 * (256 - bh1730->itime);
+	return (BH1730_INTERNAL_CLOCK_NS * 964 * (256 - bh1730->itime))
+			/ NSEC_PER_USEC;
 }
 
 static int bh1730_set_gain(struct bh1730_data *bh1730, enum bh1730_gain gain)
@@ -123,22 +127,27 @@ static int bh1730_set_gain(struct bh1730_data *bh1730, enum bh1730_gain gain)
 		return ret;
 
 	bh1730->gain = gain;
+
 	return 0;
 }
 
 static int bh1730_set_integration_time_ms(struct bh1730_data *bh1730,
 					  int time_ms)
 {
-	int ret;
-	u64 time_ns = time_ms * (u64)NSEC_PER_MSEC;
-	u64 itime_step_ns = BH1730_INTERNAL_CLOCK_NS * 964;
-	int itime = 256 - (int)DIV_ROUND_CLOSEST_ULL(time_ns, itime_step_ns);
+	int ret, time_ns, itime;
+
+	/* Prefilter obviously invalid time_ms values that would overflow. */
+	if (time_ms <= 0 || time_ms > 1000) {
+		goto out_of_range;
+	}
+
+	time_ns = time_ms * (u64)NSEC_PER_MSEC;
+	itime = 256 - DIV_ROUND_CLOSEST(time_ns,
+					BH1730_INTERNAL_CLOCK_NS * 964);
 
 	/* ITIME == 0 is reserved for manual integration mode. */
 	if (itime <= 0 || itime > 255) {
-		dev_warn(&bh1730->client->dev,
-			 "integration time out of range: %dms\n", time_ms);
-		return -ERANGE;
+		goto out_of_range;
 	}
 
 	ret = bh1730_write(bh1730, BH1730_REG_TIMING, itime);
@@ -146,17 +155,25 @@ static int bh1730_set_integration_time_ms(struct bh1730_data *bh1730,
 		return ret;
 
 	bh1730->itime = itime;
+
 	return 0;
+
+out_of_range:
+	dev_warn(&bh1730->client->dev, "integration time out of range: %dms\n",
+		 time_ms);
+
+	return -ERANGE;
 }
 
 static void bh1730_wait_for_next_measurement(struct bh1730_data *bh1730)
 {
-	ndelay(bh1730_itime_ns(bh1730) + BH1730_INTERNAL_CLOCK_NS * 714);
+	udelay(bh1730_itime_us(bh1730) +
+		DIV_ROUND_UP(BH1730_INTERNAL_CLOCK_NS * 714, NSEC_PER_USEC));
 }
 
 static int bh1730_adjust_gain(struct bh1730_data *bh1730)
 {
-	int visible, ir, highest, ret, i;
+	int visible, ir, highest, gain, ret, i;
 
 	visible = bh1730_read_word(bh1730, BH1730_REG_DATA0LOW);
 	if (visible < 0)
@@ -174,9 +191,11 @@ static int bh1730_adjust_gain(struct bh1730_data *bh1730)
 	 * recalibrations, which would be slower and have the same effect.
 	 */
 	if (highest == USHRT_MAX)
-		highest *= 128;
+		gain = 1;
 	else
-		highest = (highest * 128) / bh1730_gain_multiplier(bh1730);
+		gain = bh1730_gain_multiplier(bh1730);
+
+	highest = (highest * BH1730_MAX_GAIN_MULTIPLIER) / gain;
 
 	/*
 	 * Find the lowest gain multiplier which puts the measured values
@@ -184,7 +203,8 @@ static int bh1730_adjust_gain(struct bh1730_data *bh1730)
 	 * multiplier and 64X (next available) while keeping some margin.
 	 */
 	for (i = BH1730_GAIN_1X; i < BH1730_GAIN_128X; ++i) {
-		int adj = highest * gain_setting_to_multiplier(i) / 128;
+		int adj = highest * gain_setting_to_multiplier(i) /
+				BH1730_MAX_GAIN_MULTIPLIER;
 
 		if (adj >= 1024)
 			break;
@@ -197,13 +217,13 @@ static int bh1730_adjust_gain(struct bh1730_data *bh1730)
 
 		bh1730_wait_for_next_measurement(bh1730);
 	}
+
 	return 0;
 }
 
-static s64 bh1730_get_millilux(struct bh1730_data *bh1730)
+static int bh1730_get_millilux(struct bh1730_data *bh1730)
 {
 	int visible, ir, visible_coef, ir_coef;
-	u64 itime_us = bh1730_itime_ns(bh1730) / NSEC_PER_USEC;
 	u64 millilux;
 
 	visible = bh1730_read_word(bh1730, BH1730_REG_DATA0LOW);
@@ -233,11 +253,20 @@ static s64 bh1730_get_millilux(struct bh1730_data *bh1730)
 		return 0;
 	}
 
-	millilux = (u64)USEC_PER_MSEC * (visible_coef * visible - ir_coef * ir);
-	millilux /= bh1730_gain_multiplier(bh1730);
-	millilux *= 103;
-	millilux /= itime_us;
-	return millilux;
+	millilux = 103ULL * (visible_coef * visible - ir_coef * ir);
+	millilux *= USEC_PER_MSEC;
+	do_div(millilux, bh1730_itime_us(bh1730));
+	do_div(millilux, bh1730_gain_multiplier(bh1730));
+
+	/*
+	 * Overflow here can only happen in extreme conditions:
+	 * - Completely saturated visible light sensor and no measured IR.
+	 * - Integration time < 16ms (driver currently defaults to 150ms).
+	 */
+	if (millilux > INT_MAX)
+		return -ERANGE;
+
+	return (int)millilux;
 }
 
 static int bh1730_power_on(struct bh1730_data *bh1730)
@@ -259,6 +288,7 @@ static int bh1730_set_defaults(struct bh1730_data *bh1730)
 		return ret;
 
 	bh1730_wait_for_next_measurement(bh1730);
+
 	return 0;
 }
 
@@ -272,8 +302,7 @@ static int bh1730_read_raw(struct iio_dev *indio_dev,
 			   int *val, int *val2, long mask)
 {
 	struct bh1730_data *bh1730 = iio_priv(indio_dev);
-	int ret;
-	s64 millilux;
+	int data_reg, ret;
 
 	ret = bh1730_adjust_gain(bh1730);
 	if (ret < 0)
@@ -281,32 +310,30 @@ static int bh1730_read_raw(struct iio_dev *indio_dev,
 
 	switch (mask) {
 	case IIO_CHAN_INFO_PROCESSED:
-		millilux = bh1730_get_millilux(bh1730);
-		if (millilux < 0)
-			return millilux;
-		*val = millilux / 1000;
-		*val2 = (millilux % 1000) * 1000;
+		ret = bh1730_get_millilux(bh1730);
+		if (ret < 0)
+			return ret;
+		*val = ret / 1000;
+		*val2 = (ret % 1000) * 1000;
 		return IIO_VAL_INT_PLUS_MICRO;
 	case IIO_CHAN_INFO_RAW:
 		switch (chan->channel2) {
 		case IIO_MOD_LIGHT_CLEAR:
-			ret = bh1730_read_word(bh1730, BH1730_REG_DATA0LOW);
-			if (ret < 0)
-				return ret;
-			*val = ret;
-			return IIO_VAL_INT;
+			data_reg = BH1730_REG_DATA0LOW;
+			break;
 		case IIO_MOD_LIGHT_IR:
-			ret = bh1730_read_word(bh1730, BH1730_REG_DATA1LOW);
-			if (ret < 0)
-				return ret;
-			*val = ret;
-			return IIO_VAL_INT;
+			data_reg = BH1730_REG_DATA1LOW;
+			break;
 		default:
 			return -EINVAL;
 		}
-	case IIO_CHAN_INFO_SCALE:
-		*val = bh1730_gain_multiplier(bh1730);
-		return IIO_VAL_INT;
+		ret = bh1730_read_word(bh1730, data_reg);
+		if (ret < 0)
+			return ret;
+		ret = ret * 1000 / bh1730_gain_multiplier(bh1730);
+		*val = ret / 1000;
+		*val2 = (ret % 1000) * 1000;
+		return IIO_VAL_INT_PLUS_MICRO;
 	default:
 		return -EINVAL;
 	}
@@ -325,15 +352,13 @@ static const struct iio_chan_spec bh1730_channels[] = {
 		.type = IIO_INTENSITY,
 		.modified = 1,
 		.channel2 = IIO_MOD_LIGHT_CLEAR,
-		.info_mask_separate = BIT(IIO_CHAN_INFO_RAW) |
-				      BIT(IIO_CHAN_INFO_SCALE),
+		.info_mask_separate = BIT(IIO_CHAN_INFO_RAW),
 	},
 	{
 		.type = IIO_INTENSITY,
 		.modified = 1,
 		.channel2 = IIO_MOD_LIGHT_IR,
-		.info_mask_separate = BIT(IIO_CHAN_INFO_RAW) |
-				      BIT(IIO_CHAN_INFO_SCALE),
+		.info_mask_separate = BIT(IIO_CHAN_INFO_RAW),
 	},
 };
 
@@ -389,20 +414,18 @@ static int bh1730_remove(struct i2c_client *client)
 	return bh1730_power_off(bh1730);
 }
 
-#ifdef CONFIG_OF
 static const struct of_device_id of_bh1730_match[] = {
 	{ .compatible = "rohm,bh1730fvc" },
 	{},
 };
 MODULE_DEVICE_TABLE(of, of_bh1730_match);
-#endif
 
 static struct i2c_driver bh1730_driver = {
 	.probe_new = bh1730_probe,
 	.remove = bh1730_remove,
 	.driver = {
 		.name = "bh1730",
-		.of_match_table = of_match_ptr(of_bh1730_match),
+		.of_match_table = of_bh1730_match,
 	},
 };
 module_i2c_driver(bh1730_driver);
