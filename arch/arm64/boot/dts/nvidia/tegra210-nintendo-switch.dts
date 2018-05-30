@@ -941,6 +941,7 @@
 	sdhci@700b0000 {
 		status = "okay";
 		bus-width = <4>;
+		max-frequency = <150000000>;
 
 		cd-gpios = <&gpio TEGRA_GPIO(Z, 1) GPIO_ACTIVE_LOW>;
 		power-gpios = <&gpio TEGRA_GPIO(E, 4) GPIO_ACTIVE_HIGH>;
